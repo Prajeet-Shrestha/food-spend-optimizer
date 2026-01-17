@@ -1,11 +1,13 @@
+![Food Spend Optimizer](./public/logo.png)
+
 # 🍽️ Food Spend Optimizer
 
 A personal finance application for tracking food expenses, managing cooking staff payments, and optimizing food costs. Built with Next.js and MongoDB.
 
 ## 📋 Project Overview
 
-**Owner:** Prajeet Shrestha  
-**Type:** Personal Finance · Expense Tracking · Cost Optimization
+**Type:** Personal Finance · Expense Tracking · Cost Optimization  
+**Development:** Vibecoded (AI-assisted)
 
 ### Problem Statement
 
@@ -276,6 +278,11 @@ Personal project by Prajeet Shrestha
 
 This is a personal project, but suggestions and feedback are welcome!
 
+## 🎨 Development Notes
+
+This project was **vibecoded** - developed through natural language conversations with AI assistance. The entire application, from architecture to implementation, was built through iterative dialogue, demonstrating modern AI-assisted development workflows.
+
 ---
 
-**Built with ❤️ to turn everyday decisions into measurable behavior change.**
+**Built with ❤️ to turn everyday decisions into measurable behavior change.**  
+*Vibecoded with AI assistance • Next.js • MongoDB • TypeScript*
