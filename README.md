@@ -1,4 +1,4 @@
-![Food Spend Optimizer](./public/logo.png)
+<img src="./public/logo.png" alt="Food Spend Optimizer" width="100" />
 
 # 🍽️ Food Spend Optimizer
 
