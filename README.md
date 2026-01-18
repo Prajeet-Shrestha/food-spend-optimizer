@@ -1,4 +1,4 @@
-![Food Spend Optimizer](./public/logo.png)
+<img src="./public/logo.png" alt="Food Spend Optimizer" width="100" />
 
 # 🍽️ Food Spend Optimizer
 
@@ -7,7 +7,6 @@ A personal finance application for tracking food expenses, managing cooking staf
 ## 📋 Project Overview
 
 **Type:** Personal Finance · Expense Tracking · Cost Optimization  
-**Development:** Vibecoded (AI-assisted)
 
 ### Problem Statement
 
