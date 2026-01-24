@@ -142,7 +142,6 @@ export default function LogForm({ onSuccess }: LogFormProps) {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            max={new Date().toISOString().split('T')[0]}
             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
           />
         </div>

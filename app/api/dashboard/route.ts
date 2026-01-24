@@ -3,6 +3,9 @@ import { getAllLogs, ensureIndexes } from '@/lib/db';
 import { getSettings } from '@/lib/config';
 import { calculateDashboardMetrics } from '@/lib/calculations';
 
+// Force dynamic rendering - this route uses MongoDB which isn't available during build
+export const dynamic = 'force-dynamic';
+
 // GET /api/dashboard
 export async function GET() {
   try {

@@ -4,6 +4,9 @@ import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog } from 
 import { getSettings } from '@/lib/config';
 import { calculateDaysFoodLasted, getPreviousCookLog } from '@/lib/calculations';
 
+// Force dynamic rendering - this route uses MongoDB which isn't available during build
+export const dynamic = 'force-dynamic';
+
 // GET /api/logs
 export async function GET(request: NextRequest) {
   try {

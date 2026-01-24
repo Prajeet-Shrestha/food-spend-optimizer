@@ -308,6 +308,40 @@ export function calculateMonthlyBreakdown(
 }
 
 /**
+ * Calculate last cook time (latest cook log date)
+ */
+export function calculateLastCookTime(logs: LogEntry[]): string | undefined {
+  const cookLogs = logs
+    .filter(log => log.recordType === RecordType.COOK)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  if (cookLogs.length === 0) {
+    return undefined;
+  }
+  
+  return cookLogs[0].date;
+}
+
+/**
+ * Calculate next cook time (latest cook log date + 3 days)
+ */
+export function calculateNextCookTime(logs: LogEntry[]): string | undefined {
+  const cookLogs = logs
+    .filter(log => log.recordType === RecordType.COOK)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  if (cookLogs.length === 0) {
+    return undefined;
+  }
+  
+  const latestCookDate = new Date(cookLogs[0].date);
+  const nextCookDate = new Date(latestCookDate);
+  nextCookDate.setDate(nextCookDate.getDate() + 3);
+  
+  return nextCookDate.toISOString().split('T')[0];
+}
+
+/**
  * Calculate all dashboard metrics
  */
 export function calculateDashboardMetrics(
@@ -335,6 +369,8 @@ export function calculateDashboardMetrics(
   const cookLogs = logs.filter(log => log.recordType === RecordType.COOK);
   const groceries = logs.filter(log => log.recordType === RecordType.GROCERY);
   const payments = logs.filter(log => log.recordType === RecordType.PAYMENT);
+  const lastCookTime = calculateLastCookTime(logs);
+  const nextCookTime = calculateNextCookTime(logs);
   
   return {
     amountDue,
@@ -358,6 +394,8 @@ export function calculateDashboardMetrics(
       totalGroceries: groceries.length,
       totalPayments: payments.length,
     },
+    lastCookTime,
+    nextCookTime,
   };
 }
 

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogsCollection } from '@/lib/db';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 import { RecordType, BoughtBy } from '@/types';
+
+// Force dynamic rendering - this route uses MongoDB which isn't available during build
+export const dynamic = 'force-dynamic';
 
 // GET single log by ID
 export async function GET(
@@ -11,7 +14,7 @@ export async function GET(
   try {
     const { id } = await params;
     const collection = await getLogsCollection();
-    const log = await collection.findOne({ _id: new ObjectId(id) });
+    const log = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
     
     if (!log) {
       return NextResponse.json(
@@ -46,7 +49,7 @@ export async function PUT(
     const collection = await getLogsCollection();
     
     // Validate the log exists
-    const existingLog = await collection.findOne({ _id: new ObjectId(id) });
+    const existingLog = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
     if (!existingLog) {
       return NextResponse.json(
         { error: 'Log not found' },
@@ -102,7 +105,7 @@ export async function PUT(
     
     // Update the log
     const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: new ObjectId(id) } as Filter<any>,
       { $set: updateData }
     );
     
@@ -114,7 +117,7 @@ export async function PUT(
     }
     
     // Fetch and return updated log
-    const updatedLog = await collection.findOne({ _id: new ObjectId(id) });
+    const updatedLog = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
     
     return NextResponse.json({
       message: 'Log updated successfully',
@@ -142,7 +145,7 @@ export async function DELETE(
     const collection = await getLogsCollection();
     
     // Check if log exists
-    const existingLog = await collection.findOne({ _id: new ObjectId(id) });
+    const existingLog = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
     if (!existingLog) {
       return NextResponse.json(
         { error: 'Log not found' },
@@ -151,7 +154,7 @@ export async function DELETE(
     }
     
     // Delete the log
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const result = await collection.deleteOne({ _id: new ObjectId(id) } as Filter<any>);
     
     if (result.deletedCount === 0) {
       return NextResponse.json(

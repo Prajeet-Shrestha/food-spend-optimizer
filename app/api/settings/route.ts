@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSettingsFromDb, saveSettingsToDb } from '@/lib/db';
 import { Settings } from '@/lib/config';
 
+// Force dynamic rendering - this route uses MongoDB which isn't available during build
+export const dynamic = 'force-dynamic';
+
 // GET /api/settings
 export async function GET() {
   try {

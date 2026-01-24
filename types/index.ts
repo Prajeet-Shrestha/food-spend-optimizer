@@ -88,5 +88,7 @@ export interface DashboardMetrics {
     totalGroceries: number;
     totalPayments: number;
   };
+  nextCookTime?: string; // ISO date string: latest cook log date + 3 days
+  lastCookTime?: string; // ISO date string: latest cook log date
 }
 
