@@ -1,4 +1,4 @@
-<img src="./public/logo.png" alt="Food Spend Optimizer" width="100" />
+<img src="./public/logo.png" alt="Food Spend Optimizer" width="150" />
 
 # 🍽️ Food Spend Optimizer
 
