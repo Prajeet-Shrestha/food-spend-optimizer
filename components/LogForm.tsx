@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { RecordType, BoughtBy } from '@/types';
+import { ChefHat, ShoppingBag, CreditCard } from 'lucide-react';
 
 interface LogFormProps {
   onSuccess?: () => void;
@@ -90,7 +91,6 @@ export default function LogForm({ onSuccess }: LogFormProps) {
         onSuccess();
       }
       
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
       
     } catch (err) {
@@ -100,58 +100,60 @@ export default function LogForm({ onSuccess }: LogFormProps) {
     }
   };
   
+  const getTypeStyles = (type: RecordType) => {
+    if (recordType === type) {
+      switch(type) {
+        case RecordType.COOK: return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-800';
+        case RecordType.GROCERY: return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-800';
+        case RecordType.PAYMENT: return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-800';
+      }
+    }
+    return 'bg-[var(--secondary)] text-[var(--muted-foreground)] border-transparent hover:bg-[var(--accent)]';
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold mb-6 text-black dark:text-zinc-50">
-        Add New Log Entry
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
         {/* Record Type Selector */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-            Record Type <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-4">
-            {Object.values(RecordType).map((type) => (
-              <label
-                key={type}
-                className="flex items-center cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="recordType"
-                  value={type}
-                  checked={recordType === type}
-                  onChange={(e) => setRecordType(e.target.value as RecordType)}
-                  className="mr-2"
-                />
-                <span className="text-black dark:text-zinc-50">{type}</span>
-              </label>
-            ))}
-          </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { type: RecordType.COOK, icon: ChefHat, label: 'Cook' },
+            { type: RecordType.GROCERY, icon: ShoppingBag, label: 'Grocery' },
+            { type: RecordType.PAYMENT, icon: CreditCard, label: 'Payment' },
+          ].map((item) => (
+            <button
+              key={item.type}
+              type="button"
+              onClick={() => setRecordType(item.type)}
+              className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all ${getTypeStyles(item.type)}`}
+            >
+              <item.icon className="mb-1" size={20} />
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          ))}
         </div>
         
         {/* Date - Common Field */}
         <div>
-          <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-            Date <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+            Date
           </label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+            className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
           />
         </div>
         
         {/* Cook Log Fields */}
         {recordType === RecordType.COOK && (
-          <>
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-                Menu <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Menu <span className="text-[var(--destructive)]">*</span>
               </label>
               <input
                 type="text"
@@ -159,11 +161,11 @@ export default function LogForm({ onSuccess }: LogFormProps) {
                 onChange={(e) => setMenu(e.target.value)}
                 required
                 placeholder="e.g., Dal, Rice, Vegetables"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
                 Base Fee (Rs)
               </label>
               <input
@@ -173,30 +175,30 @@ export default function LogForm({ onSuccess }: LogFormProps) {
                 min="0"
                 step="0.01"
                 placeholder="Leave empty to use default"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
-          </>
+          </div>
         )}
         
         {/* Grocery Log Fields */}
         {recordType === RecordType.GROCERY && (
-          <>
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
                 Category
               </label>
               <input
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g., Meat, Veggies, Saag"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                placeholder="e.g., Meat, Veggies"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-                Amount (Rs) <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Amount (Rs) <span className="text-[var(--destructive)]">*</span>
               </label>
               <input
                 type="number"
@@ -205,32 +207,32 @@ export default function LogForm({ onSuccess }: LogFormProps) {
                 required
                 min="0"
                 step="0.01"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-                Bought By <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Bought By <span className="text-[var(--destructive)]">*</span>
               </label>
               <select
                 value={boughtBy}
                 onChange={(e) => setBoughtBy(e.target.value as BoughtBy)}
                 required
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               >
                 <option value={BoughtBy.STAFF}>STAFF</option>
                 <option value={BoughtBy.ME}>ME</option>
               </select>
             </div>
-          </>
+          </div>
         )}
         
         {/* Payment Log Fields */}
         {recordType === RecordType.PAYMENT && (
-          <>
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-                Amount Paid (Rs) <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Amount Paid (Rs) <span className="text-[var(--destructive)]">*</span>
               </label>
               <input
                 type="number"
@@ -239,42 +241,39 @@ export default function LogForm({ onSuccess }: LogFormProps) {
                 required
                 min="0"
                 step="0.01"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
                 Payment Method
               </label>
               <input
                 type="text"
                 value={method}
                 onChange={(e) => setMethod(e.target.value)}
-                placeholder="e.g., Cash, Bank Transfer"
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                placeholder="e.g., Cash, Esewa"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
-                Remarks <span className="text-yellow-600 dark:text-yellow-400">(Recommended)</span>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Remarks
               </label>
               <input
                 type="text"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder="e.g., Payment for Jan 1-15 period"
-                className="w-full px-3 py-2 border-2 border-yellow-300 dark:border-yellow-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50 focus:border-yellow-500 dark:focus:border-yellow-600"
+                placeholder="e.g., Salary Jan"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
               />
-              <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
-                Adding remarks helps track payment periods and purposes
-              </p>
             </div>
-          </>
+          </div>
         )}
         
         {/* Notes - Common Field */}
         <div>
-          <label className="block text-sm font-medium mb-2 text-black dark:text-zinc-50">
+          <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
             Notes
           </label>
           <textarea
@@ -282,20 +281,20 @@ export default function LogForm({ onSuccess }: LogFormProps) {
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="Optional additional notes"
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+            className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
           />
         </div>
         
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 rounded-md text-red-700 dark:text-red-400">
+          <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 rounded-md text-red-700 dark:text-red-400 text-sm">
             {error}
           </div>
         )}
         
         {/* Success Message */}
         {success && (
-          <div className="p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 rounded-md text-green-700 dark:text-green-400">
+          <div className="p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 rounded-md text-green-700 dark:text-green-400 text-sm">
             Log entry created successfully!
           </div>
         )}
@@ -304,7 +303,7 @@ export default function LogForm({ onSuccess }: LogFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-black dark:bg-zinc-50 text-white dark:text-black rounded-md font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2.5 px-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Creating...' : 'Create Log Entry'}
         </button>
@@ -312,4 +311,3 @@ export default function LogForm({ onSuccess }: LogFormProps) {
     </div>
   );
 }
-

@@ -11,6 +11,8 @@
     "seed:real": "tsx scripts/insert-real-data.ts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
+    "lucide-react": "^0.563.0",
     "mongodb": "^6.21.0",
     "nepali-date-converter": "^3.4.0",
     "next": "16.1.3",
