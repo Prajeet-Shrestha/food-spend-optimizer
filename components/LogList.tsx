@@ -2,23 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { LogEntry, RecordType, BoughtBy, PaymentLog } from '@/types';
-import NepaliDate from 'nepali-date-converter';
-import { 
-  Edit2, 
-  Trash2, 
-  ChefHat, 
-  ShoppingBag, 
-  CreditCard, 
-  AlertCircle, 
-  Check, 
-  X, 
-  UtensilsCrossed, 
+import {
+  Edit2,
+  Trash2,
+  AlertCircle,
+  Check,
+  X,
+  UtensilsCrossed,
   Calendar,
   Wallet,
   MoreHorizontal,
   FileText
 } from 'lucide-react';
 import BillGenerator from './BillGenerator';
+import { formatBilingualDate } from '@/lib/dateUtils';
+import { getLogTypeConfig } from '@/lib/logTypeConfig';
 
 interface LogListProps {
   refreshTrigger?: number;
@@ -192,46 +190,9 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const gregorian = date.toLocaleDateString('en-US', { 
-      year: 'numeric', month: 'short', day: 'numeric' 
-    });
-    
-    // Convert to Nepali date (BS)
-    const nepaliDate = new NepaliDate(date);
-    const nepaliMonths = ['Baishakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
-    const nepali = `${nepaliMonths[nepaliDate.getMonth()]} ${nepaliDate.getDate()}, ${nepaliDate.getYear()}`;
-    
-    return { gregorian, nepali };
-  };
+  const formatDate = formatBilingualDate;
 
-  const getLogTypeConfig = (type: RecordType) => {
-    switch (type) {
-      case RecordType.COOK:
-        return {
-          icon: ChefHat,
-          colorClass: 'text-blue-600',
-          bgClass: 'bg-blue-50 dark:bg-blue-900/20',
-          borderClass: 'border-blue-200 dark:border-blue-800'
-        };
-      case RecordType.GROCERY:
-        return {
-          icon: ShoppingBag,
-          colorClass: 'text-emerald-600',
-          bgClass: 'bg-emerald-50 dark:bg-emerald-900/20',
-          borderClass: 'border-emerald-200 dark:border-emerald-800'
-        };
-      case RecordType.PAYMENT:
-        return {
-          icon: CreditCard,
-          colorClass: 'text-purple-600',
-          bgClass: 'bg-purple-50 dark:bg-purple-900/20',
-          borderClass: 'border-purple-200 dark:border-purple-800'
-        };
-    }
-  };
-  
+
   if (loading) {
     return (
       <div className="w-full bg-[var(--card)] rounded-xl border border-[var(--border)] p-12 text-center text-[var(--muted-foreground)]">
@@ -256,20 +217,20 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <button
           onClick={() => setShowBillGenerator(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity font-medium"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity font-medium"
         >
           <FileText size={16} />
           Generate Bill
         </button>
-        
+
         <div className="relative">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as RecordType | 'ALL')}
-            className="appearance-none pl-4 pr-10 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            className="w-full appearance-none pl-4 pr-10 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
           >
             <option value="ALL">All Records</option>
             {Object.values(RecordType).map(type => (
@@ -307,38 +268,42 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                   {/* Left Stripe / Icon Area */}
                   <div className={`w-full sm:w-2 ${config.bgClass}`}></div>
                   
-                  <div className="flex-1 p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-full ${config.bgClass} ${config.colorClass}`}>
+                  <div className="flex-1 p-4 sm:p-5 min-w-0">
+                    <div className="flex justify-between items-start gap-3 mb-4">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className={`p-2 sm:p-2.5 rounded-full ${config.bgClass} ${config.colorClass} shrink-0`}>
                           <Icon size={18} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-[var(--foreground)]">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-semibold text-[var(--foreground)] break-words">
                               {log.recordType === RecordType.COOK && (log as any).menu}
                               {log.recordType === RecordType.GROCERY && ((log as any).category || 'Grocery')}
                               {log.recordType === RecordType.PAYMENT && 'Payment'}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${config.bgClass} ${config.colorClass}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${config.bgClass} ${config.colorClass}`}>
                               {log.recordType}
                             </span>
                           </div>
-                          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-2 mt-1">
-                            <Calendar size={12} />
-                            {dateInfo.gregorian} <span className="opacity-50">•</span> {dateInfo.nepali}
+                          <div className="text-xs text-[var(--muted-foreground)] flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} />
+                              {dateInfo.gregorian}
+                            </span>
+                            <span className="opacity-50">•</span>
+                            <span>{dateInfo.nepali}</span>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="text-right">
-                         <div className="text-xl font-bold text-[var(--foreground)]">
+
+                      <div className="text-right shrink-0">
+                         <div className="text-base sm:text-xl font-bold text-[var(--foreground)] tabular-nums whitespace-nowrap">
                            {log.recordType === RecordType.COOK && formatCurrency((log as any).baseFee || 0)}
                            {log.recordType === RecordType.GROCERY && formatCurrency((log as any).amount)}
                            {log.recordType === RecordType.PAYMENT && formatCurrency((log as any).amountPaid)}
                          </div>
                          {log.recordType === RecordType.GROCERY && (
-                           <div className="text-xs font-medium mt-1">
+                           <div className="text-xs font-medium mt-1 whitespace-nowrap">
                              <span className={(log as any).boughtBy === 'ME' ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}>
                                {(log as any).boughtBy}
                              </span>
@@ -351,12 +316,14 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                     </div>
 
                     {/* Details Section */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-[var(--muted-foreground)] mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-[var(--muted-foreground)] mb-4">
                       {log.recordType === RecordType.COOK && (log as any).daysFoodLasted && (
-                         <div className="flex items-center gap-2">
-                           <ClockIcon size={14} />
-                           <span>Lasted {(log as any).daysFoodLasted} days</span>
-                           <span className="text-[var(--primary)] font-medium">
+                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                           <span className="flex items-center gap-1.5">
+                             <ClockIcon size={14} />
+                             Lasted {(log as any).daysFoodLasted} days
+                           </span>
+                           <span className="text-[var(--primary)] font-medium tabular-nums">
                              ({formatCurrency((log as any).baseFee / ((log as any).daysFoodLasted))} /day)
                            </span>
                          </div>
@@ -364,7 +331,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                       {log.recordType === RecordType.PAYMENT && (log as any).method && (
                         <div className="flex items-center gap-2">
                           <Wallet size={14} />
-                          <span>{(log as any).method}</span>
+                          <span className="break-words min-w-0">{(log as any).method}</span>
                         </div>
                       )}
                     </div>
@@ -387,27 +354,27 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                     
                     {/* Amount Due Context (Cook Only) */}
                     {log.recordType === RecordType.COOK && (
-                      <div className="mb-4 text-xs font-medium text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 p-2 rounded inline-block">
+                      <div className="mb-4 text-xs font-medium text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 p-2 rounded tabular-nums">
                         Amount Due (till date): {formatCurrency(calculateAmountDueUpToEntry(log._id!, log.date))}
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
+                    <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <button
                         onClick={() => handleEdit(log)}
-                        className="p-1.5 text-[var(--muted-foreground)] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                        className="p-2.5 text-[var(--muted-foreground)] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
-                      
-                      <button 
+
+                      <button
                         onClick={() => handleDelete(log._id!)}
                         className={`
-                          flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors text-xs font-medium
-                          ${deleteConfirm && deleteConfirm.id === log._id 
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' 
+                          flex items-center gap-1.5 px-2.5 py-2.5 rounded-md transition-colors text-xs font-medium
+                          ${deleteConfirm && deleteConfirm.id === log._id
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
                             : 'text-[var(--muted-foreground)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'}
                         `}
                       >

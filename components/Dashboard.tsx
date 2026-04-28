@@ -109,7 +109,7 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
       {/* Header */}
       <div className="flex items-center justify-between animate-slide-right">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Track your food expenses and savings</p>
         </div>
         <button
@@ -130,7 +130,7 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action Required</span>
           </div>
           <div className="text-sm font-medium text-muted-foreground mb-2">Amount Due to Cook</div>
-          <div className="text-5xl lg:text-6xl font-bold mb-3">{formatCurrency(metrics.amountDue)}</div>
+          <div className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 tabular-nums break-all">{formatCurrency(metrics.amountDue)}</div>
           <div className="text-sm text-muted-foreground">Outstanding balance for cook services</div>
         </div>
       </div>
@@ -140,12 +140,12 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
         {/* Effective Daily Cost */}
         <div className="card-premium p-6 group animate-slide-up" style={{ animationDelay: '50ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-secondary/20 flex items-center justify-center text-secondary">
-              <DollarSign className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-secondary/20 flex items-center justify-center text-secondary">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Per Day</div>
           </div>
-          <div className="text-3xl font-bold text-foreground mb-2">{formatCurrency(metrics.effectiveDailyCost)}</div>
+          <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2 tabular-nums">{formatCurrency(metrics.effectiveDailyCost)}</div>
           <div className="text-sm text-muted-foreground mb-4">Effective Daily Cost</div>
           <div className="space-y-2 pt-4 border-t border-border">
             <div className="flex justify-between text-sm">
@@ -162,20 +162,20 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
         {/* Monthly Savings */}
         <div className="card-premium p-6 group animate-slide-up" style={{ animationDelay: '100ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <div className={`w-12 h-12 flex items-center justify-center ${
-              metrics.savings.monthly >= 0 
-                ? 'bg-primary/20 text-primary' 
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center ${
+              metrics.savings.monthly >= 0
+                ? 'bg-primary/20 text-primary'
                 : 'bg-destructive/20 text-destructive'
             }`}>
               {metrics.savings.monthly >= 0 ? (
-                <TrendingUp className="w-6 h-6" />
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
               ) : (
-                <TrendingDown className="w-6 h-6" />
+                <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
               )}
             </div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">This Month</div>
           </div>
-          <div className={`text-3xl font-bold mb-2 ${
+          <div className={`text-2xl sm:text-3xl font-bold mb-2 tabular-nums ${
             metrics.savings.monthly >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
           }`}>
             {formatCurrency(metrics.savings.monthly)}
@@ -188,12 +188,12 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
         {/* Total Food Spend */}
         <div className="card-premium p-6 group animate-slide-up" style={{ animationDelay: '150ms' }}>
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-accent/20 flex items-center justify-center text-accent">
-              <PieChart className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/20 flex items-center justify-center text-accent">
+              <PieChart className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</div>
           </div>
-          <div className="text-3xl font-bold text-foreground mb-2">{formatCurrency(metrics.totalFoodSpend.thisMonth)}</div>
+          <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2 tabular-nums">{formatCurrency(metrics.totalFoodSpend.thisMonth)}</div>
           <div className="text-sm text-muted-foreground mb-4">This Month's Spend</div>
           <div className="pt-4 border-t border-border">
             <div className="flex justify-between text-sm">
@@ -308,15 +308,15 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
       {/* Stats Summary */}
       <div className="grid grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '350ms' }}>
         <div className="card-premium p-4 text-center">
-          <div className="text-2xl lg:text-3xl font-bold text-foreground mb-1">{metrics.stats.totalCookSessions}</div>
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalCookSessions}</div>
           <div className="text-xs text-muted-foreground">Cook Sessions</div>
         </div>
         <div className="card-premium p-4 text-center">
-          <div className="text-2xl lg:text-3xl font-bold text-foreground mb-1">{metrics.stats.totalGroceries}</div>
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalGroceries}</div>
           <div className="text-xs text-muted-foreground">Grocery Logs</div>
         </div>
         <div className="card-premium p-4 text-center">
-          <div className="text-2xl lg:text-3xl font-bold text-foreground mb-1">{metrics.stats.totalPayments}</div>
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalPayments}</div>
           <div className="text-xs text-muted-foreground">Payments</div>
         </div>
       </div>

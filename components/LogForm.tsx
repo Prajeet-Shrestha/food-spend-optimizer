@@ -103,12 +103,12 @@ export default function LogForm({ onSuccess }: LogFormProps) {
   const getTypeStyles = (type: RecordType) => {
     if (recordType === type) {
       switch(type) {
-        case RecordType.COOK: return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-800';
-        case RecordType.GROCERY: return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-800';
-        case RecordType.PAYMENT: return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-800';
+        case RecordType.COOK: return 'bg-blue-100 text-blue-700 border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-500';
+        case RecordType.GROCERY: return 'bg-emerald-100 text-emerald-700 border-emerald-500 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500';
+        case RecordType.PAYMENT: return 'bg-purple-100 text-purple-700 border-purple-500 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-500';
       }
     }
-    return 'bg-[var(--secondary)] text-[var(--muted-foreground)] border-transparent hover:bg-[var(--accent)]';
+    return 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]';
   };
 
   return (
@@ -116,7 +116,7 @@ export default function LogForm({ onSuccess }: LogFormProps) {
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Record Type Selector */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
             { type: RecordType.COOK, icon: ChefHat, label: 'Cook' },
             { type: RecordType.GROCERY, icon: ShoppingBag, label: 'Grocery' },
@@ -126,9 +126,9 @@ export default function LogForm({ onSuccess }: LogFormProps) {
               key={item.type}
               type="button"
               onClick={() => setRecordType(item.type)}
-              className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all ${getTypeStyles(item.type)}`}
+              className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-lg border-2 transition-all ${getTypeStyles(item.type)}`}
             >
-              <item.icon className="mb-1" size={20} />
+              <item.icon className="mb-1 w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-sm font-medium">{item.label}</span>
             </button>
           ))}

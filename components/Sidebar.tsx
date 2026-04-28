@@ -2,28 +2,74 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FileText, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Home, FileText, Settings, Calendar, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/logs', label: 'Logs', icon: FileText },
+    { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
   return (
     <>
-      {/* Mobile Overlay */}
-      <div className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden" id="sidebar-overlay" />
-      
-      {/* Sidebar */}
+      {/* Mobile hamburger button */}
+      {!mobileOpen && (
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="lg:hidden fixed top-3 left-3 z-[60] p-2.5 bg-card border border-border rounded-lg shadow-md hover:bg-accent transition-colors"
+          aria-label="Open menu"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-sidebar"
+        >
+          <Menu className="w-5 h-5 text-foreground" />
+        </button>
+      )}
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar / Drawer */}
       <aside
-        className={`fixed left-0 top-0 h-screen bg-card border-r border-border z-50 transition-all duration-300 ${
-          collapsed ? 'w-20' : 'w-64'
+        id="mobile-sidebar"
+        role="dialog"
+        aria-modal="true"
+        data-mobile-open={mobileOpen}
+        className={`fixed left-0 top-0 z-50 h-dvh bg-card border-r border-border transition-transform duration-300 w-64 -translate-x-full data-[mobile-open=true]:translate-x-0 lg:translate-x-0 ${
+          collapsed ? 'lg:w-20' : 'lg:w-64'
         }`}
       >
         {/* Header */}
@@ -44,6 +90,15 @@ export default function Sidebar() {
               <span className="text-white font-bold text-lg">₹</span>
             </div>
           )}
+          {/* Mobile close button */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden p-2 rounded-md hover:bg-muted transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -51,7 +106,7 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
-            
+
             return (
               <Link
                 key={item.href}
@@ -74,10 +129,10 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Collapse Toggle */}
+        {/* Collapse Toggle (desktop only) */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute bottom-6 right-4 w-8 h-8 rounded-full bg-muted hover:bg-border transition-colors flex items-center justify-center group"
+          className="hidden lg:flex absolute bottom-6 right-4 w-8 h-8 rounded-full bg-muted hover:bg-border transition-colors items-center justify-center group"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (

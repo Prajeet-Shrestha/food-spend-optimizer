@@ -1,5 +1,5 @@
 import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog } from '@/types';
-import NepaliDate from 'nepali-date-converter';
+import { formatBilingualDate } from './dateUtils';
 
 export interface BillSummary {
     totalCookFees: number;
@@ -37,24 +37,7 @@ export const isTip = (paymentLog: PaymentLog): boolean => {
     return remarks.includes('tip') || notes.includes('tip') || paymentLog.isTip === true;
 };
 
-/**
- * Format date to both Gregorian and Nepali
- */
-export const formatBillDate = (dateString: string): { gregorian: string; nepali: string } => {
-    const date = new Date(dateString);
-    const gregorian = date.toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
-    });
-
-    const nepaliDate = new NepaliDate(date);
-    const nepaliMonths = [
-        'Baishakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
-        'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'
-    ];
-    const nepali = `${nepaliMonths[nepaliDate.getMonth()]} ${nepaliDate.getDate()}, ${nepaliDate.getYear()}`;
-
-    return { gregorian, nepali };
-};
+export const formatBillDate = formatBilingualDate;
 
 /**
  * Generate unique bill number based on timestamp
