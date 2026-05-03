@@ -63,30 +63,29 @@ export default function SuggestionCard({
 }: SuggestionCardProps) {
   const isAi = suggestion.source === 'ai';
   const [justPinned, setJustPinned] = useState(false);
-  const [isCurrentlyPinned, setIsCurrentlyPinned] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const pinned = loadPinnedSuggestion();
-    return pinned?.suggestion.menu === suggestion.menu;
-  });
+  const [isCurrentlyPinned, setIsCurrentlyPinned] = useState(false);
 
   const handleUse = () => {
-    savePinnedSuggestion(suggestion);
+    void savePinnedSuggestion(suggestion);
     setJustPinned(true);
     setIsCurrentlyPinned(true);
     setTimeout(() => setJustPinned(false), 2500);
   };
 
-  // Keep isCurrentlyPinned in sync if a different card gets pinned/unpinned
+  // Load initial pin state and keep it in sync if a different card gets pinned/unpinned
   useEffect(() => {
-    const sync = () => {
-      const pinned = loadPinnedSuggestion();
+    let cancelled = false;
+    const sync = async () => {
+      const pinned = await loadPinnedSuggestion();
+      if (cancelled) return;
       setIsCurrentlyPinned(pinned?.suggestion.menu === suggestion.menu);
     };
-    window.addEventListener('pinned-suggestion-changed', sync);
-    window.addEventListener('storage', sync);
+    void sync();
+    const onChange = () => { void sync(); };
+    window.addEventListener('pinned-suggestion-changed', onChange);
     return () => {
-      window.removeEventListener('pinned-suggestion-changed', sync);
-      window.removeEventListener('storage', sync);
+      cancelled = true;
+      window.removeEventListener('pinned-suggestion-changed', onChange);
     };
   }, [suggestion.menu]);
 

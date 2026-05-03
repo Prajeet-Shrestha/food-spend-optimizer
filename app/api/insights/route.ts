@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureIndexes, getAllLogs } from '@/lib/db';
+import { ensureIndexes, getAllLogs, getCachedInsight, saveCachedInsight } from '@/lib/db';
 import { MonthInsight } from '@/types';
 import { getSettings } from '@/lib/config';
 import { computeMonthStats, defaultMonthForInsights } from '@/lib/insightsEngine';
@@ -9,6 +9,25 @@ import { generateMonthInsight, AiInsightsError } from '@/lib/aiInsights';
 export const dynamic = 'force-dynamic';
 
 const MONTH_KEY_RE = /^\d{4}-\d{2}$/;
+
+// GET /api/insights?month=YYYY-MM
+// Returns the cached insight for the given month, or { insight: null } if none.
+export async function GET(request: NextRequest) {
+  const monthKey = request.nextUrl.searchParams.get('month');
+  if (!monthKey || !MONTH_KEY_RE.test(monthKey)) {
+    return NextResponse.json(
+      { error: 'Invalid or missing month. Use ?month=YYYY-MM.' },
+      { status: 400 }
+    );
+  }
+  try {
+    const insight = await getCachedInsight(monthKey);
+    return NextResponse.json({ insight });
+  } catch (error) {
+    console.error('Error reading cached insight:', error);
+    return NextResponse.json({ error: 'Failed to read cached insight' }, { status: 500 });
+  }
+}
 
 // POST /api/insights
 // Body: { month?: string }   // 'YYYY-MM'; defaults to defaultMonthForInsights()
@@ -63,6 +82,8 @@ export async function POST(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       stats,
     };
+
+    await saveCachedInsight(insight);
 
     return NextResponse.json({ insight });
   } catch (error) {

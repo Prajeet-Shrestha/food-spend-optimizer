@@ -1,42 +1,53 @@
 // Client-only helpers for "pinning" a chosen suggestion to the Dashboard widget.
-// Persisted in localStorage so it survives reloads and tab switches but stays per-device.
+// Persisted in MongoDB via /api/pinned-suggestion so it's shared across devices.
 
 import { Suggestion } from '@/types';
 
-const PIN_KEY = 'food-spend-pinned-suggestion:v1';
-
 export interface PinnedSuggestion {
   suggestion: Suggestion;
-  pinnedAt: number; // unix ms
+  pinnedAt: number;
 }
 
-export function savePinnedSuggestion(suggestion: Suggestion): void {
+const PIN_CHANGED_EVENT = 'pinned-suggestion-changed';
+
+function notifyPinChanged(): void {
   if (typeof window === 'undefined') return;
-  try {
-    const payload: PinnedSuggestion = { suggestion, pinnedAt: Date.now() };
-    localStorage.setItem(PIN_KEY, JSON.stringify(payload));
-    // Notify same-tab listeners (storage events only fire across tabs, not same tab)
-    window.dispatchEvent(new CustomEvent('pinned-suggestion-changed'));
-  } catch {
-    // quota or disabled — silent
-  }
+  window.dispatchEvent(new CustomEvent(PIN_CHANGED_EVENT));
 }
 
-export function loadPinnedSuggestion(): PinnedSuggestion | null {
-  if (typeof window === 'undefined') return null;
+export async function savePinnedSuggestion(suggestion: Suggestion): Promise<PinnedSuggestion | null> {
   try {
-    const raw = localStorage.getItem(PIN_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PinnedSuggestion;
-    if (!parsed || !parsed.suggestion || typeof parsed.suggestion.menu !== 'string') return null;
-    return parsed;
+    const res = await fetch('/api/pinned-suggestion', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suggestion }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { pinned: PinnedSuggestion | null };
+    notifyPinChanged();
+    return data.pinned;
   } catch {
     return null;
   }
 }
 
-export function clearPinnedSuggestion(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(PIN_KEY);
-  window.dispatchEvent(new CustomEvent('pinned-suggestion-changed'));
+export async function loadPinnedSuggestion(): Promise<PinnedSuggestion | null> {
+  try {
+    const res = await fetch('/api/pinned-suggestion', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { pinned: PinnedSuggestion | null };
+    const pinned = data.pinned;
+    if (!pinned || !pinned.suggestion || typeof pinned.suggestion.menu !== 'string') return null;
+    return pinned;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPinnedSuggestion(): Promise<void> {
+  try {
+    await fetch('/api/pinned-suggestion', { method: 'DELETE' });
+  } finally {
+    notifyPinChanged();
+  }
 }

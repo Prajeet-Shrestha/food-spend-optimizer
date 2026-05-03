@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { MonthInsight, DashboardMetrics } from '@/types';
-import { loadInsight, saveInsight } from '@/lib/insightsCache';
+import { loadInsight } from '@/lib/insightsCache';
 import { timeAgo } from '@/lib/timeAgo';
 import { Sparkles, RefreshCw, AlertCircle, Wand2 } from 'lucide-react';
 
@@ -45,24 +45,16 @@ export default function InsightsCard({ monthlyBreakdown, refreshTrigger }: Insig
 
   // Hydrate cache when month changes
   useEffect(() => {
+    let cancelled = false;
     setError(null);
-    const cached = loadInsight(selectedMonth);
-    setInsight(cached);
-  }, [selectedMonth, refreshTrigger]);
-
-  // Listen for cross-tab cache updates
-  useEffect(() => {
-    const onCacheChange = () => {
-      const cached = loadInsight(selectedMonth);
-      setInsight(cached);
-    };
-    window.addEventListener('insights-cache-changed', onCacheChange);
-    window.addEventListener('storage', onCacheChange);
+    setInsight(null);
+    void loadInsight(selectedMonth).then(cached => {
+      if (!cancelled) setInsight(cached);
+    });
     return () => {
-      window.removeEventListener('insights-cache-changed', onCacheChange);
-      window.removeEventListener('storage', onCacheChange);
+      cancelled = true;
     };
-  }, [selectedMonth]);
+  }, [selectedMonth, refreshTrigger]);
 
   // If selectedMonth disappears from options (rare — user deletes logs), fall back
   useEffect(() => {
@@ -94,7 +86,6 @@ export default function InsightsCard({ monthlyBreakdown, refreshTrigger }: Insig
       }
       const next = data.insight as MonthInsight;
       setInsight(next);
-      saveInsight(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error');
     } finally {

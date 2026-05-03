@@ -1,0 +1,13 @@
+services:
+  food-sessions:
+    build: .
+    image: food-spend-optimizer:latest
+    container_name: food-sessions
+    ports:
+      - "7749:3000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    restart: unless-stopped

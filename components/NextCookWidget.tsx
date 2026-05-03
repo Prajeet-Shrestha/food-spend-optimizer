@@ -22,13 +22,13 @@ export default function NextCookWidget({ refreshTrigger }: NextCookWidgetProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Source resolution: pinned (from localStorage) takes priority over fetched.
+  // Source resolution: pinned (from MongoDB) takes priority over fetched.
   const resolveSuggestion = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     // Check pin first
-    const pinned = loadPinnedSuggestion();
+    const pinned = await loadPinnedSuggestion();
     if (pinned) {
       setSuggestion(pinned.suggestion);
       setIsPinned(true);
@@ -68,15 +68,13 @@ export default function NextCookWidget({ refreshTrigger }: NextCookWidgetProps) 
   useEffect(() => {
     const onPinChange = () => resolveSuggestion();
     window.addEventListener('pinned-suggestion-changed', onPinChange);
-    window.addEventListener('storage', onPinChange);
     return () => {
       window.removeEventListener('pinned-suggestion-changed', onPinChange);
-      window.removeEventListener('storage', onPinChange);
     };
   }, [resolveSuggestion]);
 
   const handleUnpin = () => {
-    clearPinnedSuggestion();
+    void clearPinnedSuggestion();
     // resolveSuggestion will fire via the event listener
   };
 

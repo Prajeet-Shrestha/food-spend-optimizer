@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import { Bookmark, LogEntry, Suggestion } from '@/types';
+import { Bookmark, LogEntry, MonthInsight, Suggestion } from '@/types';
 import { RecordType } from '@/types';
 import { Settings } from './config';
 
@@ -9,6 +9,9 @@ const COLLECTION_NAME = 'logs';
 const SETTINGS_COLLECTION_NAME = 'settings';
 const SETTINGS_DOC_ID = 'app_settings';
 const BOOKMARKS_COLLECTION_NAME = 'suggestion_bookmarks';
+const PINNED_SUGGESTION_COLLECTION = 'pinned_suggestion';
+const PINNED_SUGGESTION_DOC_ID = 'current';
+const INSIGHTS_CACHE_COLLECTION = 'insights_cache';
 
 interface BookmarkDoc {
   _id: ObjectId;
@@ -142,6 +145,77 @@ function toBookmark(doc: BookmarkDoc): Bookmark {
     suggestion: doc.suggestion,
     bookmarkedAt: doc.bookmarkedAt,
   };
+}
+
+// ===== Pinned Suggestion (singleton) =====
+
+interface PinnedSuggestionDoc {
+  _id: string;
+  suggestion: Suggestion;
+  pinnedAt: number;
+}
+
+export interface PinnedSuggestionRecord {
+  suggestion: Suggestion;
+  pinnedAt: number;
+}
+
+export async function getPinnedSuggestion(): Promise<PinnedSuggestionRecord | null> {
+  const db = await getDb();
+  const doc = await db
+    .collection<PinnedSuggestionDoc>(PINNED_SUGGESTION_COLLECTION)
+    .findOne({ _id: PINNED_SUGGESTION_DOC_ID });
+  if (!doc) return null;
+  return { suggestion: doc.suggestion, pinnedAt: doc.pinnedAt };
+}
+
+export async function setPinnedSuggestion(
+  suggestion: Suggestion
+): Promise<PinnedSuggestionRecord> {
+  const db = await getDb();
+  const pinnedAt = Date.now();
+  await db
+    .collection<PinnedSuggestionDoc>(PINNED_SUGGESTION_COLLECTION)
+    .updateOne(
+      { _id: PINNED_SUGGESTION_DOC_ID },
+      { $set: { _id: PINNED_SUGGESTION_DOC_ID, suggestion, pinnedAt } },
+      { upsert: true }
+    );
+  return { suggestion, pinnedAt };
+}
+
+export async function clearPinnedSuggestion(): Promise<void> {
+  const db = await getDb();
+  await db
+    .collection<PinnedSuggestionDoc>(PINNED_SUGGESTION_COLLECTION)
+    .deleteOne({ _id: PINNED_SUGGESTION_DOC_ID });
+}
+
+// ===== Insights Cache (one doc per month) =====
+
+interface InsightCacheDoc extends MonthInsight {
+  _id: string;
+}
+
+export async function getCachedInsight(monthKey: string): Promise<MonthInsight | null> {
+  const db = await getDb();
+  const doc = await db
+    .collection<InsightCacheDoc>(INSIGHTS_CACHE_COLLECTION)
+    .findOne({ _id: monthKey });
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  return rest as MonthInsight;
+}
+
+export async function saveCachedInsight(insight: MonthInsight): Promise<void> {
+  const db = await getDb();
+  await db
+    .collection<InsightCacheDoc>(INSIGHTS_CACHE_COLLECTION)
+    .updateOne(
+      { _id: insight.month },
+      { $set: { ...insight, _id: insight.month } },
+      { upsert: true }
+    );
 }
 
 // Helper to get all logs with optional filters
