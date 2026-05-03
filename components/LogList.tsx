@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { LogEntry, RecordType, BoughtBy, PaymentLog } from '@/types';
 import {
   Edit2,
@@ -17,6 +17,7 @@ import {
 import BillGenerator from './BillGenerator';
 import { formatBilingualDate } from '@/lib/dateUtils';
 import { getLogTypeConfig } from '@/lib/logTypeConfig';
+import { computeAdvanceLedger } from '@/lib/calculations';
 
 interface LogListProps {
   refreshTrigger?: number;
@@ -86,6 +87,11 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
     return `Rs ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const perGroceryDrawn = useMemo(
+    () => computeAdvanceLedger(allLogs).perGroceryDrawn,
+    [allLogs]
+  );
+
   const isTip = (paymentLog: PaymentLog): boolean => {
     const remarks = (paymentLog.remarks || '').toLowerCase();
     const notes = (paymentLog.notes || '').toLowerCase();
@@ -116,12 +122,19 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
       return sum + (cookLog.baseFee || settings.baseFee || 0);
     }, 0);
 
+    // Drawdown computed against the snapshot up to (and including) this entry,
+    // so the badge stays consistent with what the dashboard would show at that
+    // point in time.
+    const drawnUpToEntry = computeAdvanceLedger(logsUpToEntry).perGroceryDrawn;
+
     const staffGroceries = logsUpToEntry.filter(
       (log: LogEntry) => log.recordType === RecordType.GROCERY && (log as any).boughtBy === BoughtBy.STAFF
     );
     const staffGroceryTotal = staffGroceries.reduce((sum: number, log: LogEntry) => {
       const groceryLog = log as any;
-      return sum + (groceryLog.amount || 0);
+      const amount = groceryLog.amount || 0;
+      const drawn = (groceryLog._id && drawnUpToEntry.get(groceryLog._id)) || 0;
+      return sum + (amount - drawn);
     }, 0);
 
     // Exclude payments from the SAME date to show the balance BEFORE settlement
@@ -280,6 +293,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                               {log.recordType === RecordType.COOK && (log as any).menu}
                               {log.recordType === RecordType.GROCERY && ((log as any).category || 'Grocery')}
                               {log.recordType === RecordType.PAYMENT && 'Payment'}
+                              {log.recordType === RecordType.ADVANCE && 'Advance Given'}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${config.bgClass} ${config.colorClass}`}>
                               {log.recordType}
@@ -301,17 +315,32 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                            {log.recordType === RecordType.COOK && formatCurrency((log as any).baseFee || 0)}
                            {log.recordType === RecordType.GROCERY && formatCurrency((log as any).amount)}
                            {log.recordType === RecordType.PAYMENT && formatCurrency((log as any).amountPaid)}
+                           {log.recordType === RecordType.ADVANCE && formatCurrency((log as any).amountGiven || 0)}
                          </div>
-                         {log.recordType === RecordType.GROCERY && (
-                           <div className="text-xs font-medium mt-1 whitespace-nowrap">
-                             <span className={(log as any).boughtBy === 'ME' ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}>
-                               {(log as any).boughtBy}
-                             </span>
-                             {(log as any).reimbursable && (
-                               <span className="ml-1 text-amber-600 dark:text-amber-500">• Reimbursable</span>
-                             )}
-                           </div>
-                         )}
+                         {log.recordType === RecordType.GROCERY && (() => {
+                           const groceryLog = log as any;
+                           const drawn = (groceryLog._id && perGroceryDrawn.get(groceryLog._id)) || 0;
+                           const reimbursable = (groceryLog.amount || 0) - drawn;
+                           const isStaff = groceryLog.boughtBy === 'STAFF';
+                           return (
+                             <div className="text-xs font-medium mt-1 whitespace-nowrap">
+                               <span className={groceryLog.boughtBy === 'ME' ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}>
+                                 {groceryLog.boughtBy}
+                               </span>
+                               {isStaff && drawn > 0 && reimbursable > 0 && (
+                                 <span className="ml-1 text-amber-600 dark:text-amber-500">
+                                   • {formatCurrency(drawn)} from advance
+                                 </span>
+                               )}
+                               {isStaff && drawn > 0 && reimbursable === 0 && (
+                                 <span className="ml-1 text-emerald-600 dark:text-emerald-500">• Covered by advance</span>
+                               )}
+                               {isStaff && drawn === 0 && reimbursable > 0 && (
+                                 <span className="ml-1 text-amber-600 dark:text-amber-500">• Reimbursable</span>
+                               )}
+                             </div>
+                           );
+                         })()}
                       </div>
                     </div>
 
@@ -504,6 +533,19 @@ function EditForm({ log, onSave, onCancel }: EditFormProps) {
           </div>
         </>
       )}
+
+       {formData.recordType === RecordType.ADVANCE && (
+        <div>
+          <label className="block text-sm font-medium mb-1">Amount Given</label>
+          <input
+            type="number"
+            value={formData.amountGiven || 0}
+            onChange={(e) => setFormData({ ...formData, amountGiven: Number(e.target.value) })}
+            className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            required
+          />
+        </div>
+       )}
 
        {formData.recordType === RecordType.PAYMENT && (
         <>

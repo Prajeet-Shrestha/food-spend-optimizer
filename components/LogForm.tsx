@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { RecordType, BoughtBy } from '@/types';
-import { ChefHat, ShoppingBag, CreditCard } from 'lucide-react';
+import { ChefHat, ShoppingBag, CreditCard, Wallet } from 'lucide-react';
 
 interface LogFormProps {
   onSuccess?: () => void;
@@ -35,6 +35,9 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
   const [amountPaid, setAmountPaid] = useState('');
   const [method, setMethod] = useState('');
   const [remarks, setRemarks] = useState('');
+
+  // Advance log fields
+  const [amountGiven, setAmountGiven] = useState('');
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,6 +65,8 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
         body.amountPaid = Number(amountPaid);
         body.method = method || undefined;
         body.remarks = remarks || undefined;
+      } else if (recordType === RecordType.ADVANCE) {
+        body.amountGiven = Number(amountGiven);
       }
       
       const response = await fetch('/api/logs', {
@@ -87,6 +92,7 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
       setAmountPaid('');
       setMethod('');
       setRemarks('');
+      setAmountGiven('');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
       setSuccess(true);
@@ -110,6 +116,7 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
         case RecordType.COOK: return 'bg-blue-100 text-blue-700 border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-500';
         case RecordType.GROCERY: return 'bg-emerald-100 text-emerald-700 border-emerald-500 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500';
         case RecordType.PAYMENT: return 'bg-purple-100 text-purple-700 border-purple-500 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-500';
+        case RecordType.ADVANCE: return 'bg-amber-100 text-amber-700 border-amber-500 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500';
       }
     }
     return 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]';
@@ -120,11 +127,12 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Record Type Selector */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {[
             { type: RecordType.COOK, icon: ChefHat, label: 'Cook' },
             { type: RecordType.GROCERY, icon: ShoppingBag, label: 'Grocery' },
             { type: RecordType.PAYMENT, icon: CreditCard, label: 'Payment' },
+            { type: RecordType.ADVANCE, icon: Wallet, label: 'Advance' },
           ].map((item) => (
             <button
               key={item.type}
@@ -231,6 +239,30 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
           </div>
         )}
         
+        {/* Advance Log Fields */}
+        {recordType === RecordType.ADVANCE && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Amount Given (Rs) <span className="text-[var(--destructive)]">*</span>
+              </label>
+              <input
+                type="number"
+                value={amountGiven}
+                onChange={(e) => setAmountGiven(e.target.value)}
+                required
+                min="0"
+                step="0.01"
+                placeholder="Cash handed over for future groceries"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                This balance will be auto-drawn down by future grocery purchases.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Payment Log Fields */}
         {recordType === RecordType.PAYMENT && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">

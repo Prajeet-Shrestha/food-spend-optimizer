@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogsCollection, ensureIndexes, getAllLogs } from '@/lib/db';
-import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog } from '@/types';
+import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog, AdvanceLog } from '@/types';
 import { getSettings } from '@/lib/config';
 import { calculateDaysFoodLasted, getPreviousCookLog } from '@/lib/calculations';
 
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
+
       const paymentLog: PaymentLog = {
         recordType: RecordType.PAYMENT,
         date: dateString,
@@ -168,9 +168,28 @@ export async function POST(request: NextRequest) {
         createdAt: now,
         updatedAt: now,
       };
-      
+
       logEntry = paymentLog;
-      
+
+    } else if (body.recordType === RecordType.ADVANCE) {
+      if (!body.amountGiven || Number(body.amountGiven) <= 0) {
+        return NextResponse.json(
+          { error: 'amountGiven must be a positive number' },
+          { status: 400 }
+        );
+      }
+
+      const advanceLog: AdvanceLog = {
+        recordType: RecordType.ADVANCE,
+        date: dateString,
+        amountGiven: Number(body.amountGiven),
+        notes: body.notes,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      logEntry = advanceLog;
+
     } else {
       return NextResponse.json(
         { error: 'Invalid record type' },

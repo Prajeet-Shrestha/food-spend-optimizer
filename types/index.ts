@@ -2,6 +2,7 @@ export enum RecordType {
   COOK = 'COOK',
   GROCERY = 'GROCERY',
   PAYMENT = 'PAYMENT',
+  ADVANCE = 'ADVANCE',
 }
 
 export enum BoughtBy {
@@ -46,8 +47,15 @@ export interface PaymentLog extends BaseLog {
   isTip?: boolean; // Flag to explicitly mark tips
 }
 
+// Advance Log — cash given to staff to pre-fund grocery shopping.
+// Drawn down FIFO by subsequent staff groceries until exhausted.
+export interface AdvanceLog extends BaseLog {
+  recordType: RecordType.ADVANCE;
+  amountGiven: number;
+}
+
 // Union type for all log entries
-export type LogEntry = CookLog | GroceryLog | PaymentLog;
+export type LogEntry = CookLog | GroceryLog | PaymentLog | AdvanceLog;
 
 // Dashboard metrics
 export interface DashboardMetrics {
@@ -88,9 +96,15 @@ export interface DashboardMetrics {
     totalCookSessions: number;
     totalGroceries: number;
     totalPayments: number;
+    totalAdvances: number;
   };
   nextCookTime?: string; // ISO date string: latest cook log date + 3 days
   lastCookTime?: string; // ISO date string: latest cook log date
+  // Advance ledger — cash held by staff for groceries
+  advanceBalance: number;        // unused advance currently held by staff
+  totalAdvancesGiven: number;    // lifetime advances handed over
+  totalAdvancesDrawn: number;    // lifetime drawdown via groceries
+  lastAdvanceDate?: string;
 }
 
 // ===== Suggestion feature =====

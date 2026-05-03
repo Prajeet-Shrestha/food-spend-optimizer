@@ -1,5 +1,71 @@
-import { LogEntry, RecordType, DashboardMetrics, BoughtBy, PaymentLog } from '@/types';
+import { LogEntry, RecordType, DashboardMetrics, BoughtBy, PaymentLog, AdvanceLog, GroceryLog } from '@/types';
 import { Settings } from './config';
+
+export interface AdvanceLedger {
+  perGroceryDrawn: Map<string, number>;
+  totalAdvancesGiven: number;
+  totalAdvancesDrawn: number;
+  advanceBalance: number;
+  lastAdvanceDate?: string;
+}
+
+/**
+ * Walk advances and staff groceries chronologically and apply FIFO drawdown.
+ * Tie-break same-date events by `_id` (MongoDB ObjectIds are chronologically
+ * sortable strings — same convention as `calculateAmountDueUpToEntry`).
+ */
+export function computeAdvanceLedger(logs: LogEntry[]): AdvanceLedger {
+  const events = logs
+    .filter(
+      log =>
+        log.recordType === RecordType.ADVANCE ||
+        (log.recordType === RecordType.GROCERY &&
+          (log as GroceryLog).boughtBy === BoughtBy.STAFF)
+    )
+    .slice()
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const aId = a._id ?? '';
+      const bId = b._id ?? '';
+      return aId.localeCompare(bId);
+    });
+
+  const perGroceryDrawn = new Map<string, number>();
+  let pool = 0;
+  let totalAdvancesGiven = 0;
+  let lastAdvanceDate: string | undefined;
+
+  for (const event of events) {
+    if (event.recordType === RecordType.ADVANCE) {
+      const advance = event as AdvanceLog;
+      pool += advance.amountGiven;
+      totalAdvancesGiven += advance.amountGiven;
+      if (!lastAdvanceDate || advance.date > lastAdvanceDate) {
+        lastAdvanceDate = advance.date;
+      }
+    } else {
+      const grocery = event as GroceryLog;
+      const drawn = Math.min(pool, grocery.amount);
+      pool -= drawn;
+      if (grocery._id) {
+        perGroceryDrawn.set(grocery._id, drawn);
+      }
+    }
+  }
+
+  let totalAdvancesDrawn = 0;
+  for (const drawn of perGroceryDrawn.values()) {
+    totalAdvancesDrawn += drawn;
+  }
+
+  return {
+    perGroceryDrawn,
+    totalAdvancesGiven,
+    totalAdvancesDrawn,
+    advanceBalance: pool,
+    lastAdvanceDate,
+  };
+}
 
 /**
  * Calculate days food lasted for a cook log based on previous cook date
@@ -45,35 +111,44 @@ function isTip(paymentLog: PaymentLog): boolean {
 }
 
 /**
- * Calculate amount due to cook
- * Formula: (BaseFee × NumberOfCookLogs) + (Sum of groceries bought by STAFF) - (Sum of all payments excluding tips)
+ * Calculate amount due to cook.
+ * Formula: cookFees + (staff groceries − advance drawdown) − non-tip payments.
+ * Advances themselves don't enter the formula; they only reduce the
+ * reimbursable portion of staff groceries via the drawdown map.
  */
-export function calculateAmountDue(logs: LogEntry[], settings: Settings): number {
+export function calculateAmountDue(
+  logs: LogEntry[],
+  settings: Settings,
+  perGroceryDrawn?: Map<string, number>
+): number {
+  const drawn = perGroceryDrawn ?? computeAdvanceLedger(logs).perGroceryDrawn;
+
   const cookLogs = logs.filter(log => log.recordType === RecordType.COOK);
   const staffGroceries = logs.filter(
-    log => log.recordType === RecordType.GROCERY && 
+    log => log.recordType === RecordType.GROCERY &&
     (log as any).boughtBy === BoughtBy.STAFF
   );
   const payments = logs.filter(log => log.recordType === RecordType.PAYMENT);
-  
+
   const cookFees = cookLogs.reduce((sum, log) => {
     const cookLog = log as any;
     return sum + (cookLog.baseFee || settings.baseFee);
   }, 0);
-  
+
   const staffGroceryTotal = staffGroceries.reduce((sum, log) => {
     const groceryLog = log as any;
-    return sum + (groceryLog.amount || 0);
+    const amount = groceryLog.amount || 0;
+    const drawnFromAdvance = (groceryLog._id && drawn.get(groceryLog._id)) || 0;
+    return sum + (amount - drawnFromAdvance);
   }, 0);
-  
-  // Exclude tips from payment total
+
   const nonTipPaymentTotal = payments
     .filter(log => !isTip(log as PaymentLog))
     .reduce((sum, log) => {
       const paymentLog = log as any;
       return sum + (paymentLog.amountPaid || 0);
     }, 0);
-  
+
   return cookFees + staffGroceryTotal - nonTipPaymentTotal;
 }
 
@@ -350,9 +425,10 @@ export function calculateDashboardMetrics(
   logs: LogEntry[],
   settings: Settings
 ): DashboardMetrics {
-  const amountDue = calculateAmountDue(logs, settings);
+  const ledger = computeAdvanceLedger(logs);
+  const amountDue = calculateAmountDue(logs, settings, ledger.perGroceryDrawn);
   const totalFoodSpendAllTime = calculateTotalFoodSpend(logs, settings);
-  
+
   // Calculate this month's spend
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -360,20 +436,21 @@ export function calculateDashboardMetrics(
     .split('T')[0];
   const thisMonthLogs = logs.filter(log => log.date >= firstDayOfMonth);
   const totalFoodSpendThisMonth = calculateTotalFoodSpend(thisMonthLogs, settings);
-  
+
   const avgCookCostPerDay = calculateAvgCookCostPerDay(logs, settings);
   const avgGroceriesCostPerDay = calculateAvgGroceriesCostPerDay(logs, settings);
   const effectiveDailyCost = calculateEffectiveDailyCost(logs, settings);
   const trackingWindow = getTrackingWindow(logs, settings);
   const savings = calculateSavings(effectiveDailyCost, settings);
   const monthlyBreakdown = calculateMonthlyBreakdown(logs, settings);
-  
+
   const cookLogs = logs.filter(log => log.recordType === RecordType.COOK);
   const groceries = logs.filter(log => log.recordType === RecordType.GROCERY);
   const payments = logs.filter(log => log.recordType === RecordType.PAYMENT);
+  const advances = logs.filter(log => log.recordType === RecordType.ADVANCE);
   const lastCookTime = calculateLastCookTime(logs);
   const nextCookTime = calculateNextCookTime(logs);
-  
+
   return {
     amountDue,
     totalFoodSpend: {
@@ -395,9 +472,14 @@ export function calculateDashboardMetrics(
       totalCookSessions: cookLogs.length,
       totalGroceries: groceries.length,
       totalPayments: payments.length,
+      totalAdvances: advances.length,
     },
     lastCookTime,
     nextCookTime,
+    advanceBalance: ledger.advanceBalance,
+    totalAdvancesGiven: ledger.totalAdvancesGiven,
+    totalAdvancesDrawn: ledger.totalAdvancesDrawn,
+    lastAdvanceDate: ledger.lastAdvanceDate,
   };
 }
 

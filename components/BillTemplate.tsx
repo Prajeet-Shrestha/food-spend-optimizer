@@ -76,12 +76,15 @@ const styles = StyleSheet.create({
   tableRowAlt: {
     backgroundColor: '#fafafa',
   },
-  col1: { width: '15%' }, // Date
-  col2: { width: '10%' }, // Type
-  col3: { width: '35%' }, // Description
-  col4: { width: '13%', textAlign: 'right' }, // Debit
-  col5: { width: '13%', textAlign: 'right' }, // Credit
-  col6: { width: '14%', textAlign: 'right' }, // Balance
+  col1: { width: '13%' }, // Date
+  col2: { width: '9%' },  // Type
+  col3: { width: '28%' }, // Description
+  col4: { width: '12%', textAlign: 'right' }, // Debit
+  col5: { width: '12%', textAlign: 'right' }, // Credit
+  col6: { width: '13%', textAlign: 'right' }, // Advance
+  col7: { width: '13%', textAlign: 'right' }, // Balance
+  advancePositive: { color: '#15803d' }, // emerald-700 — cash given
+  advanceNegative: { color: '#a16207' }, // amber-700 — drawdown
   cellText: {
     color: '#262626',
   },
@@ -239,12 +242,13 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
               <Text style={styles.col3}>Description</Text>
               <Text style={styles.col4}>Debit</Text>
               <Text style={styles.col5}>Credit</Text>
-              <Text style={styles.col6}>Balance</Text>
+              <Text style={styles.col6}>Advance</Text>
+              <Text style={styles.col7}>Balance</Text>
             </View>
 
             {items.map((item, index) => (
-              <View 
-                key={item.id} 
+              <View
+                key={item.id}
                 style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}
               >
                 <View style={styles.col1}>
@@ -266,7 +270,17 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
                 <Text style={[styles.col5, styles.cellText]}>
                   {item.credit > 0 ? formatCurrency(item.credit) : '-'}
                 </Text>
-                <Text style={[styles.col6, styles.cellTextBold]}>
+                <Text style={[
+                  styles.col6,
+                  item.advance > 0 ? styles.advancePositive : item.advance < 0 ? styles.advanceNegative : styles.cellText
+                ]}>
+                  {item.advance > 0
+                    ? `+${formatCurrency(item.advance)}`
+                    : item.advance < 0
+                      ? `-${formatCurrency(Math.abs(item.advance))}`
+                      : '-'}
+                </Text>
+                <Text style={[styles.col7, styles.cellTextBold]}>
                   {formatCurrency(item.balance)}
                 </Text>
               </View>
@@ -284,6 +298,18 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
             <Text style={styles.summaryLabel}>Total Reimbursable Groceries:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(summary.totalStaffGroceries)}</Text>
           </View>
+          {summary.totalAdvancesDrawnInPeriod > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { fontSize: 9 }]}>(Drawn from advance: {formatCurrency(summary.totalAdvancesDrawnInPeriod)})</Text>
+              <Text style={styles.summaryValue}></Text>
+            </View>
+          )}
+          {summary.totalAdvancesGivenInPeriod > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { fontSize: 9 }]}>(Advances given in period: {formatCurrency(summary.totalAdvancesGivenInPeriod)})</Text>
+              <Text style={styles.summaryValue}></Text>
+            </View>
+          )}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal Due:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(summary.subtotalDue)}</Text>
@@ -329,6 +355,8 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
             <Text style={styles.notesText}>
               This bill includes cook fees and staff-purchased groceries (reimbursable items).
               Tips are excluded from the amount due calculation.
+              The Advance column shows cash given to the cook (+) and drawdowns when groceries
+              were paid from that cash (-); these flows do not change the running balance.
             </Text>
           </View>
         </View>

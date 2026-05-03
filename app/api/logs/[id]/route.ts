@@ -101,6 +101,8 @@ export async function PUT(
       updateData.method = body.method || undefined;
       updateData.remarks = body.remarks || undefined;
       updateData.isTip = body.isTip || false;
+    } else if (body.recordType === RecordType.ADVANCE) {
+      updateData.amountGiven = body.amountGiven;
     }
     
     // Update the log

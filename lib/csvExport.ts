@@ -1,4 +1,4 @@
-import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog } from '@/types';
+import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog, AdvanceLog } from '@/types';
 import { formatBilingualDate } from './dateUtils';
 import { isTip } from './billCalculations';
 
@@ -58,6 +58,10 @@ function rowFor(log: LogEntry): string[] {
         isTip(p) ? 'Yes' : 'No',
         [p.remarks, p.notes].filter(Boolean).join(' | '),
       ];
+    }
+    case RecordType.ADVANCE: {
+      const a = log as AdvanceLog;
+      return [date, nepali, 'ADVANCE', 'Advance Given', String(a.amountGiven), '', '', '', '', a.notes ?? ''];
     }
   }
 }

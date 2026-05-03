@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { BillTemplate } from './BillTemplate';
-import { 
-  filterLogsForBill, 
-  convertLogsToBillItems, 
+import {
+  filterLogsForBill,
+  convertLogsToBillItems,
   calculateBillSummary,
   generateBillNumber,
   formatBillDate
 } from '@/lib/billCalculations';
+import { computeAdvanceLedger } from '@/lib/calculations';
 import { LogEntry } from '@/types';
 import { FileText, Download, X, Calendar, Loader2 } from 'lucide-react';
 
@@ -50,12 +51,25 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
     }
   };
 
-  const initializeDates = () => {
+  const initializeDates = async () => {
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    setEndDate(todayStr);
+
+    // Default start date to settings.trackingStartDate; fall back to first of month.
+    try {
+      const response = await fetch('/api/settings');
+      const data = await response.json();
+      const trackingStart = response.ok ? data.settings?.trackingStartDate : undefined;
+      if (trackingStart) {
+        setStartDate(trackingStart);
+        return;
+      }
+    } catch {
+      // ignore — fall through to month-start default
+    }
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
     setStartDate(firstDayOfMonth.toISOString().split('T')[0]);
-    setEndDate(today.toISOString().split('T')[0]);
   };
 
   const handleGeneratePDF = async () => {
@@ -73,6 +87,10 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       setGenerating(true);
       setError(null);
 
+      // Drawdown must be computed on the FULL log history so prior-period
+      // advances correctly cover groceries inside the bill window.
+      const { perGroceryDrawn } = computeAdvanceLedger(allLogs);
+
       // Filter logs for the selected date range
       const filteredLogs = filterLogsForBill(allLogs, startDate, endDate);
 
@@ -82,7 +100,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       }
 
       // Convert logs to bill items
-      const billItems = convertLogsToBillItems(filteredLogs);
+      const billItems = convertLogsToBillItems(filteredLogs, perGroceryDrawn);
 
       if (billItems.length === 0) {
         setError('No billable items found in the selected date range');
@@ -90,7 +108,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       }
 
       // Calculate summary
-      const summary = calculateBillSummary(filteredLogs);
+      const summary = calculateBillSummary(filteredLogs, perGroceryDrawn);
 
       // Generate bill number
       const billNumber = generateBillNumber();
@@ -141,8 +159,9 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
 
   const getLogCount = () => {
     if (!startDate || !endDate) return 0;
+    const { perGroceryDrawn } = computeAdvanceLedger(allLogs);
     const filtered = filterLogsForBill(allLogs, startDate, endDate);
-    const items = convertLogsToBillItems(filtered);
+    const items = convertLogsToBillItems(filtered, perGroceryDrawn);
     return items.length;
   };
 

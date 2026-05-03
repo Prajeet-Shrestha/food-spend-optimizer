@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DashboardMetrics } from '@/types';
-import { RefreshCw, TrendingUp, TrendingDown, Clock, Calendar, DollarSign, PieChart, Activity } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Clock, Calendar, DollarSign, PieChart, Activity, Wallet } from 'lucide-react';
 import NextCookWidget from './NextCookWidget';
 import InsightsCard from './InsightsCard';
 
@@ -124,19 +124,51 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
         </button>
       </div>
       
-      {/* Amount Due - Hero Card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-amber-700/80 to-orange-800/80 p-8 text-foreground shadow-md animate-scale-in border border-border">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 bg-accent"></div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action Required</span>
+      {/* Amount Due + Advance Balance — two-ledger view */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Amount Due */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-700/80 to-orange-800/80 p-8 text-foreground shadow-md animate-scale-in border border-border">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-accent"></div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action Required</span>
+            </div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">Amount Due to Cook</div>
+            <div className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 tabular-nums break-all">{formatCurrency(metrics.amountDue)}</div>
+            <div className="text-sm text-muted-foreground">Outstanding balance for cook services</div>
           </div>
-          <div className="text-sm font-medium text-muted-foreground mb-2">Amount Due to Cook</div>
-          <div className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 tabular-nums break-all">{formatCurrency(metrics.amountDue)}</div>
-          <div className="text-sm text-muted-foreground">Outstanding balance for cook services</div>
+        </div>
+
+        {/* Advance Balance */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-700/80 to-teal-800/80 p-8 text-foreground shadow-md animate-scale-in border border-border">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Wallet className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cash Held by Cook</span>
+            </div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">Advance Balance</div>
+            {metrics.totalAdvancesGiven === 0 ? (
+              <>
+                <div className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 tabular-nums break-all opacity-60">{formatCurrency(0)}</div>
+                <div className="text-sm text-muted-foreground">No advances yet — give cash up front to skip reimbursements</div>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 tabular-nums break-all">{formatCurrency(metrics.advanceBalance)}</div>
+                <div className="text-sm text-muted-foreground">
+                  {formatCurrency(metrics.totalAdvancesDrawn)} used of {formatCurrency(metrics.totalAdvancesGiven)}
+                </div>
+                {metrics.lastAdvanceDate && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Last advance: {formatRelativeDate(metrics.lastAdvanceDate)}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-      
+
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Effective Daily Cost */}
@@ -321,7 +353,7 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
       )}
       
       {/* Stats Summary */}
-      <div className="grid grid-cols-3 gap-4 animate-slide-up" style={{ animationDelay: '350ms' }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '350ms' }}>
         <div className="card-premium p-4 text-center">
           <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalCookSessions}</div>
           <div className="text-xs text-muted-foreground">Cook Sessions</div>
@@ -333,6 +365,10 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
         <div className="card-premium p-4 text-center">
           <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalPayments}</div>
           <div className="text-xs text-muted-foreground">Payments</div>
+        </div>
+        <div className="card-premium p-4 text-center">
+          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-1 tabular-nums">{metrics.stats.totalAdvances}</div>
+          <div className="text-xs text-muted-foreground">Advances</div>
         </div>
       </div>
     </div>
