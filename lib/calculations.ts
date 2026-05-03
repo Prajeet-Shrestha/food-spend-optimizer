@@ -263,6 +263,7 @@ export function calculateMonthlyBreakdown(
   logs: LogEntry[],
   settings: Settings
 ): Array<{
+  monthKey: string;
   month: string;
   year: number;
   monthName: string;
@@ -297,6 +298,7 @@ export function calculateMonthlyBreakdown(
       const groceryCount = monthLogs.filter(log => log.recordType === RecordType.GROCERY).length;
       
       return {
+        monthKey: monthKey, // 'YYYY-MM' for stable lookups
         month: `${monthNames[monthNum]} ${year}`,
         year: parseInt(year),
         monthName: monthNames[monthNum],

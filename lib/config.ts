@@ -1,9 +1,16 @@
+import { SuggestionPreferences } from '@/types';
+import { DEFAULT_SUGGESTION_PREFERENCES } from './suggestionDefaults';
+
+// Re-export so existing server-side imports keep working
+export { DEFAULT_SUGGESTION_PREFERENCES, validateSuggestionPreferences } from './suggestionDefaults';
+
 export interface Settings {
   baseFee: number;
   baselineDailyLow: number;
   baselineDailyHigh: number;
   baselineDailyAvg: number;
   trackingStartDate?: string; // ISO date string, optional
+  suggestionPreferences?: SuggestionPreferences;
 }
 
 const defaultSettings: Settings = {
@@ -12,21 +19,30 @@ const defaultSettings: Settings = {
   baselineDailyHigh: 400,
   baselineDailyAvg: 380,
   trackingStartDate: undefined,
+  suggestionPreferences: DEFAULT_SUGGESTION_PREFERENCES,
 };
+
+// Merge stored preferences over defaults so old settings docs surface complete shapes
+export function getSuggestionPreferences(settings: Settings): SuggestionPreferences {
+  return { ...DEFAULT_SUGGESTION_PREFERENCES, ...(settings.suggestionPreferences ?? {}) };
+}
 
 // Get settings with priority: MongoDB > Environment Variables > Defaults
 export async function getSettings(): Promise<Settings> {
   // Try MongoDB first
   const { getSettingsFromDb } = await import('./db');
   const dbSettings = await getSettingsFromDb();
-  
+
   if (dbSettings) {
-    return dbSettings;
+    return {
+      ...dbSettings,
+      suggestionPreferences: getSuggestionPreferences(dbSettings),
+    };
   }
-  
+
   // Fall back to environment variables
   const envSettings: Partial<Settings> = {};
-  
+
   if (process.env.BASE_FEE) {
     envSettings.baseFee = Number(process.env.BASE_FEE);
   }
@@ -42,13 +58,14 @@ export async function getSettings(): Promise<Settings> {
   if (process.env.TRACKING_START_DATE) {
     envSettings.trackingStartDate = process.env.TRACKING_START_DATE;
   }
-  
+
   return {
     baseFee: envSettings.baseFee ?? defaultSettings.baseFee,
     baselineDailyLow: envSettings.baselineDailyLow ?? defaultSettings.baselineDailyLow,
     baselineDailyHigh: envSettings.baselineDailyHigh ?? defaultSettings.baselineDailyHigh,
     baselineDailyAvg: envSettings.baselineDailyAvg ?? defaultSettings.baselineDailyAvg,
     trackingStartDate: envSettings.trackingStartDate ?? defaultSettings.trackingStartDate,
+    suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   };
 }
 
@@ -66,6 +83,6 @@ export function getSettingsSync(): Settings {
       ? Number(process.env.BASELINE_DAILY_AVG)
       : defaultSettings.baselineDailyAvg,
     trackingStartDate: process.env.TRACKING_START_DATE || defaultSettings.trackingStartDate,
+    suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   };
 }
-

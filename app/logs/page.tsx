@@ -1,15 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import LogForm from '@/components/LogForm';
 import LogList from '@/components/LogList';
 import ExportCsvButton from '@/components/ExportCsvButton';
 
-export default function LogsPage() {
+function LogsPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [prefillMenu, setPrefillMenu] = useState<string | undefined>(undefined);
+
+  // Read ?prefillMenu= once on mount, then strip it from the URL so a refresh
+  // doesn't re-prefill stale data.
+  useEffect(() => {
+    const fromQuery = searchParams.get('prefillMenu');
+    if (fromQuery) {
+      setPrefillMenu(fromQuery);
+      router.replace('/logs');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
+    setPrefillMenu(undefined);
   };
 
   return (
@@ -21,9 +37,21 @@ export default function LogsPage() {
         </div>
         <ExportCsvButton />
       </div>
-      
-      <LogForm onSuccess={handleLogSuccess} />
+
+      <LogForm
+        key={prefillMenu ?? 'fresh'}
+        onSuccess={handleLogSuccess}
+        defaultMenu={prefillMenu}
+      />
       <LogList refreshTrigger={refreshTrigger} onRefresh={handleLogSuccess} />
     </div>
+  );
+}
+
+export default function LogsPage() {
+  return (
+    <Suspense fallback={<div className="animate-fade-in">Loading…</div>}>
+      <LogsPageInner />
+    </Suspense>
   );
 }

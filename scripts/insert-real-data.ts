@@ -269,7 +269,7 @@ async function insertRealData() {
     console.log('⚙️  Inserting settings...');
     const settings: Settings = realData.settings;
     await settingsCollection.updateOne(
-      { _id: SETTINGS_DOC_ID },
+      { _id: SETTINGS_DOC_ID } as never,
       {
         $set: {
           ...settings,
@@ -290,8 +290,8 @@ async function insertRealData() {
     for (const log of realData.logs) {
       if (log.recordType === RecordType.COOK) {
         cookLogs.push({
-          date: log.date,
           ...log,
+          date: log.date,
         });
       }
     }

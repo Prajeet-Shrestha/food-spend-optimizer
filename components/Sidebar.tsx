@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FileText, Settings, Calendar, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { Home, FileText, Settings, Calendar, ChevronLeft, ChevronRight, Menu, X, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
@@ -14,6 +14,7 @@ export default function Sidebar() {
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/logs', label: 'Logs', icon: FileText },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
+    { href: '/suggestions', label: 'Suggestions', icon: Sparkles },
     { href: '/settings', label: 'Settings', icon: Settings },
   ];
 

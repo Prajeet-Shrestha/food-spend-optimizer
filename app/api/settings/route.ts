@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSettingsFromDb, saveSettingsToDb } from '@/lib/db';
-import { Settings } from '@/lib/config';
+import {
+  Settings,
+  DEFAULT_SUGGESTION_PREFERENCES,
+  getSuggestionPreferences,
+  validateSuggestionPreferences,
+} from '@/lib/config';
 
 // Force dynamic rendering - this route uses MongoDB which isn't available during build
 export const dynamic = 'force-dynamic';
@@ -9,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const settings = await getSettingsFromDb();
-    
+
     if (!settings) {
       // Return defaults if no settings in DB
       return NextResponse.json({
@@ -19,11 +24,18 @@ export async function GET() {
           baselineDailyHigh: 400,
           baselineDailyAvg: 380,
           trackingStartDate: undefined,
+          suggestionPreferences: DEFAULT_SUGGESTION_PREFERENCES,
         },
       });
     }
-    
-    return NextResponse.json({ settings });
+
+    // Merge defaults under stored prefs so old documents return a complete shape
+    return NextResponse.json({
+      settings: {
+        ...settings,
+        suggestionPreferences: getSuggestionPreferences(settings),
+      },
+    });
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json(
@@ -37,7 +49,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate settings
     const settings: Settings = {
       baseFee: Number(body.baseFee) ?? 0,
@@ -45,8 +57,9 @@ export async function PUT(request: NextRequest) {
       baselineDailyHigh: Number(body.baselineDailyHigh) ?? 400,
       baselineDailyAvg: Number(body.baselineDailyAvg) ?? 380,
       trackingStartDate: body.trackingStartDate || undefined,
+      suggestionPreferences: validateSuggestionPreferences(body.suggestionPreferences),
     };
-    
+
     // Validate values
     if (settings.baseFee < 0) {
       return NextResponse.json(
@@ -54,21 +67,21 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (settings.baselineDailyLow < 0 || settings.baselineDailyHigh < 0 || settings.baselineDailyAvg < 0) {
       return NextResponse.json(
         { error: 'Baseline values must be non-negative' },
         { status: 400 }
       );
     }
-    
+
     if (settings.baselineDailyLow > settings.baselineDailyHigh) {
       return NextResponse.json(
         { error: 'Baseline low must be less than or equal to baseline high' },
         { status: 400 }
       );
     }
-    
+
     if (settings.trackingStartDate) {
       const date = new Date(settings.trackingStartDate);
       if (isNaN(date.getTime())) {
@@ -78,9 +91,9 @@ export async function PUT(request: NextRequest) {
         );
       }
     }
-    
+
     await saveSettingsToDb(settings);
-    
+
     return NextResponse.json({ settings });
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -90,4 +103,3 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-

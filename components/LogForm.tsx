@@ -6,20 +6,24 @@ import { ChefHat, ShoppingBag, CreditCard } from 'lucide-react';
 
 interface LogFormProps {
   onSuccess?: () => void;
+  defaultMenu?: string;
+  defaultDate?: string;
 }
 
-export default function LogForm({ onSuccess }: LogFormProps) {
-  const [recordType, setRecordType] = useState<RecordType>(RecordType.COOK);
+export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogFormProps) {
+  const [recordType, setRecordType] = useState<RecordType>(
+    defaultMenu ? RecordType.COOK : RecordType.COOK
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   // Common fields
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(defaultDate ?? new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
-  
+
   // Cook log fields
-  const [menu, setMenu] = useState('');
+  const [menu, setMenu] = useState(defaultMenu ?? '');
   const [baseFee, setBaseFee] = useState('');
   
   // Grocery log fields

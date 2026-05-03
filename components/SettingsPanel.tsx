@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
-import { Settings } from '@/lib/config';
-import { Settings as SettingsIcon, X, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import type { Settings } from '@/lib/config';
+import { DEFAULT_SUGGESTION_PREFERENCES } from '@/lib/suggestionDefaults';
+import { SuggestionPreferences } from '@/types';
+import { getProteins } from '@/lib/foodTaxonomy';
+import { Settings as SettingsIcon, X, Save, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 
 interface SettingsPanelProps {
   onUpdate?: () => void;
@@ -16,6 +19,7 @@ export default function SettingsPanel({ onUpdate, embedded = false }: SettingsPa
     baselineDailyHigh: 400,
     baselineDailyAvg: 380,
     trackingStartDate: undefined,
+    suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,6 +94,22 @@ export default function SettingsPanel({ onUpdate, embedded = false }: SettingsPa
     }
   };
   
+  // Helpers for SuggestionPreferences fields
+  const prefs: SuggestionPreferences = settings.suggestionPreferences ?? { ...DEFAULT_SUGGESTION_PREFERENCES };
+  const updatePrefs = (patch: Partial<SuggestionPreferences>) => {
+    setSettings({
+      ...settings,
+      suggestionPreferences: { ...prefs, ...patch },
+    });
+  };
+  const toggleProtein = (canonical: string) => {
+    const current = new Set(prefs.allowedProteins);
+    if (current.has(canonical)) current.delete(canonical);
+    else current.add(canonical);
+    updatePrefs({ allowedProteins: Array.from(current) });
+  };
+  const proteinOptions = getProteins();
+
   if (!isOpen && !embedded) {
     return (
       <button
@@ -230,7 +250,129 @@ export default function SettingsPanel({ onUpdate, embedded = false }: SettingsPa
                 </p>
               </div>
             </div>
-            
+
+            {/* Cook Suggestions */}
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-5">
+              <h3 className="text-base font-semibold mb-4 text-[var(--foreground)] flex items-center gap-2">
+                <Sparkles size={16} className="text-[var(--primary)]" />
+                Cook Suggestions
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                    Allowed Proteins
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {proteinOptions.map(p => {
+                      const active = prefs.allowedProteins.includes(p.canonical);
+                      return (
+                        <button
+                          key={p.canonical}
+                          type="button"
+                          onClick={() => toggleProtein(p.canonical)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                            active
+                              ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]'
+                              : 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]'
+                          }`}
+                        >
+                          {p.canonical}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                    Tap to toggle. Suggestions will rotate among these.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                      Veg days per week
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={7}
+                      value={prefs.vegDaysPerWeek}
+                      onChange={(e) => updatePrefs({ vegDaysPerWeek: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none transition-all"
+                    />
+                    <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                      How often to suggest a meatless cook (0–7).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                      Max budget per cook (Rs)
+                    </label>
+                    <input
+                      type="number"
+                      min={100}
+                      step={50}
+                      value={prefs.maxBudgetPerCook}
+                      onChange={(e) => updatePrefs({ maxBudgetPerCook: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none transition-all"
+                    />
+                    <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                      Cap for cook fee + groceries combined.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                    Favorite items (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={prefs.favoriteItems.join(', ')}
+                    onChange={(e) => updatePrefs({
+                      favoriteItems: e.target.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+                    })}
+                    placeholder="e.g., chicken, saag"
+                    className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none transition-all"
+                  />
+                  <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                    These items get a small boost in suggestions.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                    Avoid items (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={prefs.avoidItems.join(', ')}
+                    onChange={(e) => updatePrefs({
+                      avoidItems: e.target.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+                    })}
+                    placeholder="e.g., prawn"
+                    className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none transition-all"
+                  />
+                  <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                    Suggestions will never include these.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={prefs.includeExtras}
+                    onChange={(e) => updatePrefs({ includeExtras: e.target.checked })}
+                    className="w-4 h-4 accent-[var(--primary)]"
+                  />
+                  <span className="text-sm font-medium text-[var(--foreground)]">
+                    Suggest extras (achaar, papad, etc.)
+                  </span>
+                </label>
+              </div>
+            </div>
+
             {/* Status Messages */}
             {error && (
               <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 flex items-start gap-3">

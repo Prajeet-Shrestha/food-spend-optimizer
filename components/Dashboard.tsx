@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { DashboardMetrics } from '@/types';
 import { RefreshCw, TrendingUp, TrendingDown, Clock, Calendar, DollarSign, PieChart, Activity } from 'lucide-react';
+import NextCookWidget from './NextCookWidget';
+import InsightsCard from './InsightsCard';
 
 interface DashboardProps {
   refreshTrigger?: number;
@@ -250,7 +252,20 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
           )}
         </div>
       )}
-      
+
+      {/* Next-cook suggestion widget — only when there's history to learn from */}
+      {metrics.lastCookTime && (
+        <NextCookWidget refreshTrigger={refreshTrigger} />
+      )}
+
+      {/* AI Monthly Insights — narrative form of the trends data below */}
+      {metrics.monthlyBreakdown && metrics.monthlyBreakdown.length > 0 && (
+        <InsightsCard
+          monthlyBreakdown={metrics.monthlyBreakdown}
+          refreshTrigger={refreshTrigger}
+        />
+      )}
+
       {/* Monthly Trends */}
       {metrics.monthlyBreakdown && metrics.monthlyBreakdown.length > 0 && (
         <div className="card-premium p-6 lg:p-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
