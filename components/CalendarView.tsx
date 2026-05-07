@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, X, ChefHat, ShoppingBag } from 'lucide-react';
-import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog } from '@/types';
+import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog, AdvanceLog } from '@/types';
 import {
   formatBilingualDate,
   getLocalDateKey,
@@ -37,6 +37,7 @@ function endOfMonth(date: Date): Date {
 function logAmount(log: LogEntry): number {
   if (log.recordType === RecordType.COOK) return (log as CookLog).baseFee;
   if (log.recordType === RecordType.GROCERY) return (log as GroceryLog).amount;
+  if (log.recordType === RecordType.ADVANCE) return (log as AdvanceLog).amountGiven;
   return (log as PaymentLog).amountPaid;
 }
 
@@ -46,6 +47,7 @@ function logLabel(log: LogEntry): string {
     const g = log as GroceryLog;
     return `Rs ${g.amount} · ${g.category || 'Grocery'}`;
   }
+  if (log.recordType === RecordType.ADVANCE) return `Rs ${(log as AdvanceLog).amountGiven} · Advance`;
   return `Rs ${(log as PaymentLog).amountPaid}`;
 }
 
@@ -375,6 +377,7 @@ function DayDetailModal({
                         {log.recordType === RecordType.COOK && (log as CookLog).menu}
                         {log.recordType === RecordType.GROCERY && ((log as GroceryLog).category || 'Grocery')}
                         {log.recordType === RecordType.PAYMENT && 'Payment'}
+                        {log.recordType === RecordType.ADVANCE && 'Advance'}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${cfg.bgClass} ${cfg.colorClass}`}>
                         {log.recordType}
