@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getLogsCollection } from '@/lib/db';
 import { ObjectId, Filter } from 'mongodb';
 import { RecordType, BoughtBy } from '@/types';
+import { triggerNotifications } from '@/lib/notifications/runNotifications';
 
 // Force dynamic rendering - this route uses MongoDB which isn't available during build
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,8 @@ export async function PUT(
       );
 
       const updatedMissed = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
+      // A reason was added/changed — re-sync so a resolved miss stops nagging.
+      triggerNotifications();
       return NextResponse.json({
         message: 'Missed check-in updated',
         log: {
@@ -170,7 +173,10 @@ export async function PUT(
     
     // Fetch and return updated log
     const updatedLog = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
-    
+
+    // Keep notifications synced — an edited cook/date may shift the cadence.
+    triggerNotifications();
+
     return NextResponse.json({
       message: 'Log updated successfully',
       log: {
@@ -222,7 +228,10 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    
+
+    // Keep notifications synced — a deleted cook may shift the cadence.
+    triggerNotifications();
+
     return NextResponse.json({
       message: 'Log deleted successfully',
     });

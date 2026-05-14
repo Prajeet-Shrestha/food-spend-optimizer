@@ -10,4 +10,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
+      # Container timezone — drives "today" and the notification hour gate.
+      # Without this the container is UTC (~5h45m behind Nepal).
+      TZ: Asia/Kathmandu
     restart: unless-stopped

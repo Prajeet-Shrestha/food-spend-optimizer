@@ -283,3 +283,21 @@ export interface MonthInsight {
   stats: InsightStats;       // raw numbers the AI saw, surfaced in the card
 }
 
+// ===== Notifications =====
+
+// Telegram check-in notifications. `key` is the date the notification is about
+// (the check-in date, or a missed check-in's hardCheckinDate) — together with
+// `kind` it's the idempotency key in the `notifications_sent` collection.
+export type NotificationKind = 'CHECKIN_PRE_DAY' | 'CHECKIN_DAY_OF' | 'MISSED_REASON';
+
+export interface DueNotification {
+  kind: NotificationKind;
+  key: string; // ISO YYYY-MM-DD
+}
+
+export interface NotificationSentDoc {
+  kind: NotificationKind;
+  key: string;
+  sentAt: string; // ISO timestamp; '' while only claimed, set on successful send
+}
+

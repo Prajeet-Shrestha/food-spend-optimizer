@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import { Bookmark, LogEntry, MonthInsight, Suggestion, MissedCheckinLog } from '@/types';
+import { Bookmark, LogEntry, MonthInsight, Suggestion, MissedCheckinLog, NotificationSentDoc } from '@/types';
 import { RecordType } from '@/types';
 import { Settings, getSettings } from './config';
 import { detectMissedCheckins } from './cadence';
@@ -14,6 +14,7 @@ const BOOKMARKS_COLLECTION_NAME = 'suggestion_bookmarks';
 const PINNED_SUGGESTION_COLLECTION = 'pinned_suggestion';
 const PINNED_SUGGESTION_DOC_ID = 'current';
 const INSIGHTS_CACHE_COLLECTION = 'insights_cache';
+const NOTIFICATIONS_SENT_COLLECTION = 'notifications_sent';
 
 interface BookmarkDoc {
   _id: ObjectId;
@@ -39,6 +40,11 @@ export async function getLogsCollection() {
 export async function getSettingsCollection() {
   const db = await getDb();
   return db.collection<Settings & { _id: string }>(SETTINGS_COLLECTION_NAME);
+}
+
+export async function getNotificationsSentCollection() {
+  const db = await getDb();
+  return db.collection<NotificationSentDoc>(NOTIFICATIONS_SENT_COLLECTION);
 }
 
 // Get settings from MongoDB, return null if not found
@@ -96,6 +102,13 @@ export async function ensureIndexes() {
   const bookmarks = await getBookmarksCollection();
   await bookmarks.createIndex({ menuKey: 1 }, { unique: true });
   await bookmarks.createIndex({ bookmarkedAt: -1 });
+
+  // Notification dedup — each { kind, key } is sent at most once.
+  const notifications = await getNotificationsSentCollection();
+  await notifications.createIndex(
+    { kind: 1, key: 1 },
+    { unique: true, name: 'notification_dedup' }
+  );
 }
 
 // ===== Bookmarks =====

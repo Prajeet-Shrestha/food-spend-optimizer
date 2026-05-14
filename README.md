@@ -93,7 +93,37 @@ Previously spending Rs 360–400 per day on daily food purchases, this system he
    BASELINE_DAILY_HIGH=400
    BASELINE_DAILY_AVG=380
    TRACKING_START_DATE=2025-11-01
+   CADENCE_START_DATE=2026-04-01
+
+   # Optional: Telegram check-in notifications (leave blank to disable)
+   TELEGRAM_BOT_TOKEN=                   # from @BotFather
+   TELEGRAM_CHAT_ID=                     # your chat id (see below)
+   NOTIFICATION_HOUR=7                   # earliest local hour pre-day/day-of reminders send
+   NOTIFICATION_CHECK_INTERVAL_MINUTES=720  # scheduler check interval (default 12h)
+   NOTIFICATION_REMINDER_HOURS=12        # re-nag interval for un-reasoned missed check-ins
+   NOTIFICATIONS_RUN_TOKEN=              # shared secret for GET/POST /api/notifications/run
    ```
+
+### Telegram notifications
+
+The app sends three Telegram pushes off the cooking-cadence schedule: **1 day before**
+a check-in, **on the check-in day**, and a one-time **"add a reason"** alert when a
+check-in is freshly missed. They are off unless `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_CHAT_ID` are both set.
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) → `TELEGRAM_BOT_TOKEN`.
+2. Message the bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy
+   `result[].message.chat.id` → `TELEGRAM_CHAT_ID`.
+3. An in-process scheduler (`instrumentation.ts`) checks every 12h in production, and any
+   log create/update/delete also triggers a check — so notifications stay synced with your
+   cadence. Dedup is handled in the `notifications_sent` collection so re-runs never
+   double-send check-in reminders.
+4. A missed check-in with no reason is re-sent every `NOTIFICATION_REMINDER_HOURS` (default
+   12h) until you add a reason — capped by a 7-day staleness window so it can't nag forever.
+5. Manual / external trigger: `GET /api/notifications/run?token=<NOTIFICATIONS_RUN_TOKEN>`
+   — add `&dryRun=1` to preview without sending, `&force=1` to bypass the hour gate.
+6. **Docker:** set `TZ` (e.g. `Asia/Kathmandu`) in `docker-compose.yml` so "today" and
+   the hour gate use local time — already configured there.
 
 4. **Run the development server**
    ```bash

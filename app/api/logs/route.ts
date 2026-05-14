@@ -3,6 +3,7 @@ import { getLogsCollection, ensureIndexes, getAllLogs } from '@/lib/db';
 import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog, AdvanceLog, PaidLeaveLog } from '@/types';
 import { getSettings } from '@/lib/config';
 import { calculateDaysFoodLasted, getPreviousCookLog } from '@/lib/calculations';
+import { triggerNotifications } from '@/lib/notifications/runNotifications';
 
 // Force dynamic rendering - this route uses MongoDB which isn't available during build
 export const dynamic = 'force-dynamic';
@@ -238,7 +239,10 @@ export async function POST(request: NextRequest) {
       ...logEntry,
       _id: result.insertedId.toString(),
     };
-    
+
+    // Keep notifications synced with the new log (cadence may have shifted).
+    triggerNotifications();
+
     return NextResponse.json({ log: insertedLog }, { status: 201 });
     
   } catch (error) {
