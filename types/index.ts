@@ -7,6 +7,7 @@ export enum RecordType {
   PAYMENT = 'PAYMENT',
   ADVANCE = 'ADVANCE',
   MISSED = 'MISSED',
+  PAID_LEAVE = 'PAID_LEAVE',
 }
 
 export enum BoughtBy {
@@ -69,8 +70,16 @@ export interface MissedCheckinLog extends BaseLog {
   detectedAt: string; // ISO timestamp when reconcile recorded it
 }
 
+// Paid Leave Log — a day the cook was told not to come (employer's call) but is
+// still owed for. User-created. Carries a `fee` that counts on the earned side,
+// just like a cook fee. The reason for the leave lives in the optional `notes`.
+export interface PaidLeaveLog extends BaseLog {
+  recordType: RecordType.PAID_LEAVE;
+  fee: number;
+}
+
 // Union type for all log entries
-export type LogEntry = CookLog | GroceryLog | PaymentLog | AdvanceLog | MissedCheckinLog;
+export type LogEntry = CookLog | GroceryLog | PaymentLog | AdvanceLog | MissedCheckinLog | PaidLeaveLog;
 
 // Dashboard metrics
 export interface DashboardMetrics {

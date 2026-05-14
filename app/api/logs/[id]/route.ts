@@ -112,6 +112,15 @@ export async function PUT(
       updateData.isTip = body.isTip || false;
     } else if (body.recordType === RecordType.ADVANCE) {
       updateData.amountGiven = body.amountGiven;
+    } else if (body.recordType === RecordType.PAID_LEAVE) {
+      const fee = Number(body.fee);
+      if (!fee || fee <= 0) {
+        return NextResponse.json(
+          { error: 'Fee must be a positive number' },
+          { status: 400 }
+        );
+      }
+      updateData.fee = fee;
     }
     
     // Update the log

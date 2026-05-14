@@ -1,6 +1,17 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { BillItem, BillSummary, formatCurrency } from '@/lib/billCalculations';
+import { RecordType } from '@/types';
+
+// Type color codes — mirror lib/logTypeConfig.ts (Tailwind 600 shades)
+const typeColors: Record<RecordType, string> = {
+  [RecordType.COOK]: '#2563eb',       // blue
+  [RecordType.GROCERY]: '#9333ea',    // purple
+  [RecordType.PAYMENT]: '#059669',    // emerald
+  [RecordType.ADVANCE]: '#d97706',    // amber
+  [RecordType.MISSED]: '#e11d48',     // rose
+  [RecordType.PAID_LEAVE]: '#0d9488', // teal
+};
 
 // Sharp & Muted aesthetic - no rounded corners, professional monochrome
 const styles = StyleSheet.create({
@@ -78,6 +89,12 @@ const styles = StyleSheet.create({
   },
   col1: { width: '13%' }, // Date
   col2: { width: '9%' },  // Type
+  typeText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
   col3: { width: '28%' }, // Description
   col4: { width: '12%', textAlign: 'right' }, // Debit
   col5: { width: '12%', textAlign: 'right' }, // Credit
@@ -255,7 +272,7 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
                   <Text style={styles.cellText}>{item.gregorianDate}</Text>
                   <Text style={styles.cellTextMuted}>{item.nepaliDate}</Text>
                 </View>
-                <Text style={[styles.col2, styles.cellTextMuted]}>
+                <Text style={[styles.col2, styles.typeText, { color: typeColors[item.type] }]}>
                   {item.type}
                 </Text>
                 <View style={styles.col3}>
@@ -294,6 +311,12 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
             <Text style={styles.summaryLabel}>Total Cook Fees:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(summary.totalCookFees)}</Text>
           </View>
+          {summary.totalPaidLeave > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Paid Leave:</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(summary.totalPaidLeave)}</Text>
+            </View>
+          )}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Reimbursable Groceries:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(summary.totalStaffGroceries)}</Text>

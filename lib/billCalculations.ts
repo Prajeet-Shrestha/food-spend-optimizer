@@ -1,8 +1,9 @@
-import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog, MissedCheckinLog } from '@/types';
+import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog, MissedCheckinLog, PaidLeaveLog } from '@/types';
 import { formatBilingualDate, getNepaliDayNumber } from './dateUtils';
 
 export interface BillSummary {
     totalCookFees: number;
+    totalPaidLeave: number; // Fees owed for employer-cancelled (paid leave) days
     totalStaffGroceries: number; // Reimbursable portion only (post-advance drawdown)
     totalPayments: number;
     totalTips: number;
@@ -15,6 +16,7 @@ export interface BillSummary {
         groceries: number;
         payments: number;
         advances: number;
+        paidLeaves: number;
     };
 }
 
@@ -163,6 +165,12 @@ export const convertLogsToBillItems = (
                 description = `Missed check-in — ${monthName} ${day}`;
                 break;
             }
+            case RecordType.PAID_LEAVE: {
+                const paidLeaveLog = log as PaidLeaveLog;
+                debit = paidLeaveLog.fee;
+                description = 'Paid Leave';
+                break;
+            }
         }
 
         const hasMoneyMovement = debit > 0 || credit > 0 || advance !== 0;
@@ -214,6 +222,7 @@ export const calculateBillSummary = (
     perGroceryDrawn?: Map<string, number>
 ): BillSummary => {
     let totalCookFees = 0;
+    let totalPaidLeave = 0;
     let totalStaffGroceries = 0;
     let totalPayments = 0;
     let totalTips = 0;
@@ -223,6 +232,7 @@ export const calculateBillSummary = (
     let groceryCount = 0;
     let paymentCount = 0;
     let advanceCount = 0;
+    let paidLeaveCount = 0;
     const drawn = perGroceryDrawn ?? new Map<string, number>();
 
     logs.forEach(log => {
@@ -259,14 +269,21 @@ export const calculateBillSummary = (
                 advanceCount++;
                 break;
             }
+            case RecordType.PAID_LEAVE: {
+                const paidLeaveLog = log as PaidLeaveLog;
+                totalPaidLeave += paidLeaveLog.fee;
+                paidLeaveCount++;
+                break;
+            }
         }
     });
 
-    const subtotalDue = totalCookFees + totalStaffGroceries;
+    const subtotalDue = totalCookFees + totalPaidLeave + totalStaffGroceries;
     const finalAmountDue = subtotalDue - totalPayments;
 
     return {
         totalCookFees,
+        totalPaidLeave,
         totalStaffGroceries,
         totalPayments,
         totalTips,
@@ -278,7 +295,8 @@ export const calculateBillSummary = (
             cooks: cookCount,
             groceries: groceryCount,
             payments: paymentCount,
-            advances: advanceCount
+            advances: advanceCount,
+            paidLeaves: paidLeaveCount
         }
     };
 };

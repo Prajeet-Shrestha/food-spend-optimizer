@@ -5,6 +5,7 @@ import {
   GroceryLog,
   PaymentLog,
   MissedCheckinLog,
+  PaidLeaveLog,
   LogEntry,
   RecordType,
   BoughtBy,
@@ -42,6 +43,13 @@ const missed = (id: string, hardCheckinDate: string, nepaliMonth: string): Misse
   nepaliMonth,
   hardCheckinDate,
   detectedAt: '2026-06-01T00:00:00.000Z',
+});
+
+const paidLeave = (id: string, date: string, fee: number): PaidLeaveLog => ({
+  _id: id,
+  recordType: RecordType.PAID_LEAVE,
+  date,
+  fee,
 });
 
 describe('convertLogsToBillItems — MISSED memo rows', () => {
@@ -96,5 +104,36 @@ describe('calculateBillSummary — MISSED records are money-neutral', () => {
     expect(summary.itemCount.cooks).toBe(9);
     expect(summary.totalCookFees).toBe(6300);
     expect(summary.finalAmountDue).toBe(6300);
+  });
+});
+
+describe('PAID_LEAVE — billed as a debit', () => {
+  it('renders a PAID_LEAVE record as a debit row that moves the running balance', () => {
+    const logs: LogEntry[] = [
+      cook('a', '2026-05-17'),
+      paidLeave('b', '2026-05-21', 625),
+    ];
+    const items = convertLogsToBillItems(logs);
+
+    expect(items).toHaveLength(2);
+    const leave = items[1];
+    expect(leave.type).toBe(RecordType.PAID_LEAVE);
+    expect(leave.debit).toBe(625);
+    expect(leave.credit).toBe(0);
+    expect(leave.description).toBe('Paid Leave');
+    expect(leave.balance).toBe(1325);
+  });
+
+  it('sums PAID_LEAVE fees into totalPaidLeave and the amount due', () => {
+    const logs: LogEntry[] = [
+      cook('a', '2026-05-17'),
+      paidLeave('b', '2026-05-21', 625),
+      paidLeave('c', '2026-05-25', 625),
+    ];
+    const summary = calculateBillSummary(logs);
+    expect(summary.totalPaidLeave).toBe(1250);
+    expect(summary.itemCount.paidLeaves).toBe(2);
+    expect(summary.subtotalDue).toBe(1950);
+    expect(summary.finalAmountDue).toBe(1950);
   });
 });

@@ -1,4 +1,4 @@
-import { ChefHat, ShoppingBag, CreditCard, Wallet, CalendarX, type LucideIcon } from 'lucide-react';
+import { ChefHat, ShoppingBag, CreditCard, Wallet, CalendarX, CalendarCheck, type LucideIcon } from 'lucide-react';
 import { RecordType } from '@/types';
 
 export interface LogTypeConfig {
@@ -50,6 +50,14 @@ export function getLogTypeConfig(type: RecordType): LogTypeConfig {
         bgClass: 'bg-rose-50 dark:bg-rose-900/20',
         borderClass: 'border-rose-200 dark:border-rose-800',
         dotClass: 'bg-rose-500',
+      };
+    case RecordType.PAID_LEAVE:
+      return {
+        icon: CalendarCheck,
+        colorClass: 'text-teal-600',
+        bgClass: 'bg-teal-50 dark:bg-teal-900/20',
+        borderClass: 'border-teal-200 dark:border-teal-800',
+        dotClass: 'bg-teal-500',
       };
   }
 }

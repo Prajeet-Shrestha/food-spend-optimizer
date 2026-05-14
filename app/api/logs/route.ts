@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogsCollection, ensureIndexes, getAllLogs } from '@/lib/db';
-import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog, AdvanceLog } from '@/types';
+import { RecordType, LogEntry, BoughtBy, CookLog, GroceryLog, PaymentLog, AdvanceLog, PaidLeaveLog } from '@/types';
 import { getSettings } from '@/lib/config';
 import { calculateDaysFoodLasted, getPreviousCookLog } from '@/lib/calculations';
 
@@ -197,6 +197,31 @@ export async function POST(request: NextRequest) {
       };
 
       logEntry = advanceLog;
+
+    } else if (body.recordType === RecordType.PAID_LEAVE) {
+      // A zero/negative fee is meaningless and would be silently dropped from
+      // the bill, so require a positive fee (stricter than COOK's baseFee).
+      const fee = body.fee !== undefined
+        ? Number(body.fee)
+        : settings.baseFee;
+
+      if (!fee || fee <= 0) {
+        return NextResponse.json(
+          { error: 'Fee must be a positive number' },
+          { status: 400 }
+        );
+      }
+
+      const paidLeaveLog: PaidLeaveLog = {
+        recordType: RecordType.PAID_LEAVE,
+        date: dateString,
+        fee,
+        notes: body.notes,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      logEntry = paidLeaveLog;
 
     } else {
       return NextResponse.json(

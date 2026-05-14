@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { RecordType, BoughtBy } from '@/types';
-import { ChefHat, ShoppingBag, CreditCard, Wallet } from 'lucide-react';
+import { ChefHat, ShoppingBag, CreditCard, Wallet, CalendarCheck } from 'lucide-react';
 
 interface LogFormProps {
   onSuccess?: () => void;
@@ -38,7 +38,10 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
 
   // Advance log fields
   const [amountGiven, setAmountGiven] = useState('');
-  
+
+  // Paid leave log fields
+  const [fee, setFee] = useState('');
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -67,6 +70,10 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
         body.remarks = remarks || undefined;
       } else if (recordType === RecordType.ADVANCE) {
         body.amountGiven = Number(amountGiven);
+      } else if (recordType === RecordType.PAID_LEAVE) {
+        if (fee) {
+          body.fee = Number(fee);
+        }
       }
       
       const response = await fetch('/api/logs', {
@@ -93,6 +100,7 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
       setMethod('');
       setRemarks('');
       setAmountGiven('');
+      setFee('');
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
       setSuccess(true);
@@ -117,6 +125,7 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
         case RecordType.GROCERY: return 'bg-emerald-100 text-emerald-700 border-emerald-500 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500';
         case RecordType.PAYMENT: return 'bg-purple-100 text-purple-700 border-purple-500 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-500';
         case RecordType.ADVANCE: return 'bg-amber-100 text-amber-700 border-amber-500 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500';
+        case RecordType.PAID_LEAVE: return 'bg-teal-100 text-teal-700 border-teal-500 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-500';
       }
     }
     return 'bg-[var(--muted)] text-[var(--foreground)] border-[var(--border)] hover:border-[var(--muted-foreground)]';
@@ -127,12 +136,13 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Record Type Selector */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
           {[
             { type: RecordType.COOK, icon: ChefHat, label: 'Cook' },
             { type: RecordType.GROCERY, icon: ShoppingBag, label: 'Grocery' },
             { type: RecordType.PAYMENT, icon: CreditCard, label: 'Payment' },
             { type: RecordType.ADVANCE, icon: Wallet, label: 'Advance' },
+            { type: RecordType.PAID_LEAVE, icon: CalendarCheck, label: 'Paid Leave' },
           ].map((item) => (
             <button
               key={item.type}
@@ -307,6 +317,29 @@ export default function LogForm({ onSuccess, defaultMenu, defaultDate }: LogForm
           </div>
         )}
         
+        {/* Paid Leave Log Fields */}
+        {recordType === RecordType.PAID_LEAVE && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">
+                Fee (Rs)
+              </label>
+              <input
+                type="number"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="Leave empty to use default"
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                A day the cook was told not to come but is still owed for. Use Notes for the reason.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Notes - Common Field */}
         <div>
           <label className="block text-sm font-medium mb-2 text-[var(--foreground)]">

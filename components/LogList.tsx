@@ -122,6 +122,11 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
       return sum + (cookLog.baseFee || settings.baseFee || 0);
     }, 0);
 
+    const paidLeaveLogs = logsUpToEntry.filter((log: LogEntry) => log.recordType === RecordType.PAID_LEAVE);
+    const paidLeaveFees = paidLeaveLogs.reduce((sum: number, log: LogEntry) => {
+      return sum + ((log as any).fee || 0);
+    }, 0);
+
     // Drawdown computed against the snapshot up to (and including) this entry,
     // so the badge stays consistent with what the dashboard would show at that
     // point in time.
@@ -149,7 +154,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
         return sum + (paymentLog.amountPaid || 0);
       }, 0);
 
-    return cookFees + staffGroceryTotal - nonTipPaymentTotal;
+    return cookFees + paidLeaveFees + staffGroceryTotal - nonTipPaymentTotal;
   };
 
   const handleDelete = async (logId: string) => {
@@ -295,6 +300,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                               {log.recordType === RecordType.PAYMENT && 'Payment'}
                               {log.recordType === RecordType.ADVANCE && 'Advance Given'}
                               {log.recordType === RecordType.MISSED && 'Missed check-in'}
+                              {log.recordType === RecordType.PAID_LEAVE && 'Paid Leave'}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${config.bgClass} ${config.colorClass}`}>
                               {log.recordType}
@@ -317,6 +323,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                            {log.recordType === RecordType.GROCERY && formatCurrency((log as any).amount)}
                            {log.recordType === RecordType.PAYMENT && formatCurrency((log as any).amountPaid)}
                            {log.recordType === RecordType.ADVANCE && formatCurrency((log as any).amountGiven || 0)}
+                           {log.recordType === RecordType.PAID_LEAVE && formatCurrency((log as any).fee || 0)}
                            {log.recordType === RecordType.MISSED && (
                              <span className="text-[var(--muted-foreground)] font-medium">No charge</span>
                            )}
@@ -385,8 +392,8 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                       </div>
                     )}
                     
-                    {/* Amount Due Context (Cook Only) */}
-                    {log.recordType === RecordType.COOK && (
+                    {/* Amount Due Context (Cook & Paid Leave) */}
+                    {(log.recordType === RecordType.COOK || log.recordType === RecordType.PAID_LEAVE) && (
                       <div className="mb-4 text-xs font-medium text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 p-2 rounded tabular-nums">
                         Amount Due (till date): {formatCurrency(calculateAmountDueUpToEntry(log._id!, log.date))}
                       </div>
@@ -552,6 +559,19 @@ function EditForm({ log, onSave, onCancel }: EditFormProps) {
             type="number"
             value={formData.amountGiven || 0}
             onChange={(e) => setFormData({ ...formData, amountGiven: Number(e.target.value) })}
+            className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            required
+          />
+        </div>
+       )}
+
+       {formData.recordType === RecordType.PAID_LEAVE && (
+        <div>
+          <label className="block text-sm font-medium mb-1">Fee</label>
+          <input
+            type="number"
+            value={formData.fee || 0}
+            onChange={(e) => setFormData({ ...formData, fee: Number(e.target.value) })}
             className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             required
           />

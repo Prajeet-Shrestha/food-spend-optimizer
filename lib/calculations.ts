@@ -128,6 +128,7 @@ export function calculateAmountDue(
   const drawn = perGroceryDrawn ?? computeAdvanceLedger(logs).perGroceryDrawn;
 
   const cookLogs = logs.filter(log => log.recordType === RecordType.COOK);
+  const paidLeaveLogs = logs.filter(log => log.recordType === RecordType.PAID_LEAVE);
   const staffGroceries = logs.filter(
     log => log.recordType === RecordType.GROCERY &&
     (log as any).boughtBy === BoughtBy.STAFF
@@ -137,6 +138,10 @@ export function calculateAmountDue(
   const cookFees = cookLogs.reduce((sum, log) => {
     const cookLog = log as any;
     return sum + (cookLog.baseFee || settings.baseFee);
+  }, 0);
+
+  const paidLeaveFees = paidLeaveLogs.reduce((sum, log) => {
+    return sum + ((log as any).fee || 0);
   }, 0);
 
   const staffGroceryTotal = staffGroceries.reduce((sum, log) => {
@@ -153,7 +158,7 @@ export function calculateAmountDue(
       return sum + (paymentLog.amountPaid || 0);
     }, 0);
 
-  return cookFees + staffGroceryTotal - nonTipPaymentTotal;
+  return cookFees + paidLeaveFees + staffGroceryTotal - nonTipPaymentTotal;
 }
 
 /**
@@ -161,19 +166,24 @@ export function calculateAmountDue(
  */
 export function calculateTotalFoodSpend(logs: LogEntry[], settings: Settings): number {
   const cookLogs = logs.filter(log => log.recordType === RecordType.COOK);
+  const paidLeaveLogs = logs.filter(log => log.recordType === RecordType.PAID_LEAVE);
   const groceries = logs.filter(log => log.recordType === RecordType.GROCERY);
-  
+
   const cookFees = cookLogs.reduce((sum, log) => {
     const cookLog = log as any;
     return sum + (cookLog.baseFee || settings.baseFee);
   }, 0);
-  
+
+  const paidLeaveFees = paidLeaveLogs.reduce((sum, log) => {
+    return sum + ((log as any).fee || 0);
+  }, 0);
+
   const groceryTotal = groceries.reduce((sum, log) => {
     const groceryLog = log as any;
     return sum + (groceryLog.amount || 0);
   }, 0);
-  
-  return cookFees + groceryTotal;
+
+  return cookFees + paidLeaveFees + groceryTotal;
 }
 
 /**
