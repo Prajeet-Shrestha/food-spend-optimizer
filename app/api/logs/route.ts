@@ -48,7 +48,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
+    // MISSED records are system-generated only — never created via the API.
+    if (body.recordType === RecordType.MISSED) {
+      return NextResponse.json(
+        { error: 'MISSED records are system-generated and cannot be created manually' },
+        { status: 403 }
+      );
+    }
+
     // Validate date
     if (!body.date) {
       return NextResponse.json(

@@ -1,5 +1,5 @@
-import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog } from '@/types';
-import { formatBilingualDate } from './dateUtils';
+import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog, MissedCheckinLog } from '@/types';
+import { formatBilingualDate, getNepaliDayNumber } from './dateUtils';
 
 export interface BillSummary {
     totalCookFees: number;
@@ -150,6 +150,17 @@ export const convertLogsToBillItems = (
                 isMemo = true;
                 advance = advanceLog.amountGiven;
                 description = `Advance Given`;
+                break;
+            }
+            case RecordType.MISSED: {
+                // Zero-money memo row — carries no debit/credit, never touches
+                // the running balance. Surfaced so the cook can see the missed
+                // check-in on the bill.
+                const missedLog = log as MissedCheckinLog;
+                isMemo = true;
+                const monthName = missedLog.nepaliMonth.split('-')[1] ?? missedLog.nepaliMonth;
+                const day = getNepaliDayNumber(new Date(missedLog.hardCheckinDate));
+                description = `Missed check-in — ${monthName} ${day}`;
                 break;
             }
         }

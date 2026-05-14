@@ -56,7 +56,16 @@ export async function PUT(
         { status: 404 }
       );
     }
-    
+
+    // MISSED records are system-generated only — they cannot be edited, nor can
+    // any record be converted into one.
+    if (existingLog.recordType === RecordType.MISSED || body.recordType === RecordType.MISSED) {
+      return NextResponse.json(
+        { error: 'MISSED records are system-generated and cannot be edited' },
+        { status: 403 }
+      );
+    }
+
     // Prepare update data
     const updateData: any = {
       recordType: body.recordType,
@@ -154,7 +163,15 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    
+
+    // MISSED records are system-generated only — they cannot be deleted manually.
+    if (existingLog.recordType === RecordType.MISSED) {
+      return NextResponse.json(
+        { error: 'MISSED records are system-generated and cannot be deleted' },
+        { status: 403 }
+      );
+    }
+
     // Delete the log
     const result = await collection.deleteOne({ _id: new ObjectId(id) } as Filter<any>);
     

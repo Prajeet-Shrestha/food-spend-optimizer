@@ -294,6 +294,7 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                               {log.recordType === RecordType.GROCERY && ((log as any).category || 'Grocery')}
                               {log.recordType === RecordType.PAYMENT && 'Payment'}
                               {log.recordType === RecordType.ADVANCE && 'Advance Given'}
+                              {log.recordType === RecordType.MISSED && 'Missed check-in'}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${config.bgClass} ${config.colorClass}`}>
                               {log.recordType}
@@ -316,6 +317,9 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                            {log.recordType === RecordType.GROCERY && formatCurrency((log as any).amount)}
                            {log.recordType === RecordType.PAYMENT && formatCurrency((log as any).amountPaid)}
                            {log.recordType === RecordType.ADVANCE && formatCurrency((log as any).amountGiven || 0)}
+                           {log.recordType === RecordType.MISSED && (
+                             <span className="text-[var(--muted-foreground)] font-medium">No charge</span>
+                           )}
                          </div>
                          {log.recordType === RecordType.GROCERY && (() => {
                            const groceryLog = log as any;
@@ -388,31 +392,38 @@ export default function LogList({ refreshTrigger, onRefresh }: LogListProps) {
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleEdit(log)}
-                        className="p-2.5 text-[var(--muted-foreground)] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+                    {/* Actions — MISSED records are system-generated, so they
+                        have no edit/delete affordance. */}
+                    {log.recordType === RecordType.MISSED ? (
+                      <div className="pt-2 border-t border-[var(--border)] text-xs text-[var(--muted-foreground)] italic">
+                        Auto-detected check-in — no manual edits
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEdit(log)}
+                          className="p-2.5 text-[var(--muted-foreground)] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 size={16} />
+                        </button>
 
-                      <button
-                        onClick={() => handleDelete(log._id!)}
-                        className={`
-                          flex items-center gap-1.5 px-2.5 py-2.5 rounded-md transition-colors text-xs font-medium
-                          ${deleteConfirm && deleteConfirm.id === log._id
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                            : 'text-[var(--muted-foreground)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'}
-                        `}
-                      >
-                        <Trash2 size={16} />
-                        {deleteConfirm && deleteConfirm.id === log._id && (
-                          <span>{deleteConfirm.step === 1 ? 'Confirm?' : 'Sure?'}</span>
-                        )}
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => handleDelete(log._id!)}
+                          className={`
+                            flex items-center gap-1.5 px-2.5 py-2.5 rounded-md transition-colors text-xs font-medium
+                            ${deleteConfirm && deleteConfirm.id === log._id
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                              : 'text-[var(--muted-foreground)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'}
+                          `}
+                        >
+                          <Trash2 size={16} />
+                          {deleteConfirm && deleteConfirm.id === log._id && (
+                            <span>{deleteConfirm.step === 1 ? 'Confirm?' : 'Sure?'}</span>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

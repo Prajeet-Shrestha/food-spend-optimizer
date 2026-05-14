@@ -38,6 +38,7 @@ function logAmount(log: LogEntry): number {
   if (log.recordType === RecordType.COOK) return (log as CookLog).baseFee;
   if (log.recordType === RecordType.GROCERY) return (log as GroceryLog).amount;
   if (log.recordType === RecordType.ADVANCE) return (log as AdvanceLog).amountGiven;
+  if (log.recordType === RecordType.MISSED) return 0;
   return (log as PaymentLog).amountPaid;
 }
 
@@ -48,6 +49,7 @@ function logLabel(log: LogEntry): string {
     return `Rs ${g.amount} · ${g.category || 'Grocery'}`;
   }
   if (log.recordType === RecordType.ADVANCE) return `Rs ${(log as AdvanceLog).amountGiven} · Advance`;
+  if (log.recordType === RecordType.MISSED) return 'Missed check-in';
   return `Rs ${(log as PaymentLog).amountPaid}`;
 }
 
@@ -378,6 +380,7 @@ function DayDetailModal({
                         {log.recordType === RecordType.GROCERY && ((log as GroceryLog).category || 'Grocery')}
                         {log.recordType === RecordType.PAYMENT && 'Payment'}
                         {log.recordType === RecordType.ADVANCE && 'Advance'}
+                        {log.recordType === RecordType.MISSED && 'Missed check-in'}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${cfg.bgClass} ${cfg.colorClass}`}>
                         {log.recordType}
@@ -388,7 +391,7 @@ function DayDetailModal({
                     )}
                   </div>
                   <div className="font-bold text-[var(--foreground)] whitespace-nowrap">
-                    {formatRs(logAmount(log))}
+                    {log.recordType === RecordType.MISSED ? '—' : formatRs(logAmount(log))}
                   </div>
                 </div>
               );
