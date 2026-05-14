@@ -1,8 +1,11 @@
+import type { CadenceStatus } from '@/lib/cadence';
+
 export enum RecordType {
   COOK = 'COOK',
   GROCERY = 'GROCERY',
   PAYMENT = 'PAYMENT',
   ADVANCE = 'ADVANCE',
+  MISSED = 'MISSED',
 }
 
 export enum BoughtBy {
@@ -54,8 +57,19 @@ export interface AdvanceLog extends BaseLog {
   amountGiven: number;
 }
 
+// Missed Check-in Log — system-generated when a hard cadence check-in date
+// passes without a cook. Never created or edited by the user. Idempotency key
+// is { nepaliMonth, hardCheckinDate }. `date` mirrors `hardCheckinDate` so the
+// record sorts and renders alongside other log types.
+export interface MissedCheckinLog extends BaseLog {
+  recordType: RecordType.MISSED;
+  nepaliMonth: string; // e.g. "2083-Jestha"
+  hardCheckinDate: string; // ISO date — the missed hard check-in date
+  detectedAt: string; // ISO timestamp when reconcile recorded it
+}
+
 // Union type for all log entries
-export type LogEntry = CookLog | GroceryLog | PaymentLog | AdvanceLog;
+export type LogEntry = CookLog | GroceryLog | PaymentLog | AdvanceLog | MissedCheckinLog;
 
 // Dashboard metrics
 export interface DashboardMetrics {
@@ -105,6 +119,8 @@ export interface DashboardMetrics {
   totalAdvancesGiven: number;    // lifetime advances handed over
   totalAdvancesDrawn: number;    // lifetime drawdown via groceries
   lastAdvanceDate?: string;
+  // Cooking-cadence status — null when no cadenceStartDate is configured.
+  cadenceStatus: CadenceStatus | null;
 }
 
 // ===== Suggestion feature =====

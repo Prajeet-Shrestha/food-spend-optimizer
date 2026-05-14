@@ -1,5 +1,7 @@
-import { LogEntry, RecordType, DashboardMetrics, BoughtBy, PaymentLog, AdvanceLog, GroceryLog } from '@/types';
+import { LogEntry, RecordType, DashboardMetrics, BoughtBy, PaymentLog, AdvanceLog, GroceryLog, MissedCheckinLog } from '@/types';
 import { Settings } from './config';
+import { getCadenceStatus } from './cadence';
+import { getLocalDateKey } from './dateUtils';
 
 export interface AdvanceLedger {
   perGroceryDrawn: Map<string, number>;
@@ -348,8 +350,11 @@ export function calculateMonthlyBreakdown(
 }> {
   // Group logs by month
   const monthlyData: { [key: string]: LogEntry[] } = {};
-  
+
   logs.forEach(log => {
+    // MISSED records carry no spend — keep them out of the historical breakdown
+    // so they never create an empty month row.
+    if (log.recordType === RecordType.MISSED) return;
     const date = new Date(log.date);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     if (!monthlyData[monthKey]) {
@@ -451,6 +456,18 @@ export function calculateDashboardMetrics(
   const lastCookTime = calculateLastCookTime(logs);
   const nextCookTime = calculateNextCookTime(logs);
 
+  const missedLogs = logs.filter(
+    log => log.recordType === RecordType.MISSED
+  ) as MissedCheckinLog[];
+  const cadenceStatus = settings.cadenceStartDate
+    ? getCadenceStatus(
+        cookLogs.map(log => ({ date: log.date })),
+        missedLogs.map(m => ({ nepaliMonth: m.nepaliMonth, hardCheckinDate: m.hardCheckinDate })),
+        settings.cadenceStartDate,
+        getLocalDateKey(new Date())
+      )
+    : null;
+
   return {
     amountDue,
     totalFoodSpend: {
@@ -480,6 +497,7 @@ export function calculateDashboardMetrics(
     totalAdvancesGiven: ledger.totalAdvancesGiven,
     totalAdvancesDrawn: ledger.totalAdvancesDrawn,
     lastAdvanceDate: ledger.lastAdvanceDate,
+    cadenceStatus,
   };
 }
 

@@ -1,8 +1,10 @@
 import { ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import { Bookmark, LogEntry, MonthInsight, Suggestion } from '@/types';
+import { Bookmark, LogEntry, MonthInsight, Suggestion, MissedCheckinLog } from '@/types';
 import { RecordType } from '@/types';
-import { Settings } from './config';
+import { Settings, getSettings } from './config';
+import { detectMissedCheckins } from './cadence';
+import { getLocalDateKey } from './dateUtils';
 
 const DB_NAME = 'food_spend_optimizer';
 const COLLECTION_NAME = 'logs';
@@ -77,6 +79,18 @@ export async function ensureIndexes() {
 
   // Compound index for common queries
   await collection.createIndex({ recordType: 1, date: -1 });
+
+  // Idempotency guard for system-generated MISSED check-in records — unique on
+  // { nepaliMonth, hardCheckinDate }, scoped to MISSED docs so other log types
+  // (which lack these fields) are unaffected.
+  await collection.createIndex(
+    { nepaliMonth: 1, hardCheckinDate: 1 } as Record<string, 1>,
+    {
+      unique: true,
+      partialFilterExpression: { recordType: RecordType.MISSED },
+      name: 'missed_checkin_idempotency',
+    }
+  );
 
   // Bookmarks indexes
   const bookmarks = await getBookmarksCollection();
@@ -251,5 +265,67 @@ export async function getAllLogs(filters?: {
     ...log,
     _id: log._id?.toString(),
   })) as LogEntry[];
+}
+
+// ===== Missed check-in reconciliation =====
+
+// Thin, impure orchestration glue: reads cook + missed logs, asks the pure
+// cadence engine which MISSED records should exist, and inserts the missing
+// ones idempotently. Safe to call on every dashboard load — repeated calls and
+// concurrent calls never create duplicates (upsert keyed on the idempotency
+// fields, backed by the unique partial index from ensureIndexes).
+export async function reconcileMissedCheckins(asOf?: string): Promise<MissedCheckinLog[]> {
+  const settings = await getSettings();
+  if (!settings.cadenceStartDate) return [];
+
+  const asOfDate = asOf ?? getLocalDateKey(new Date());
+  const collection = await getLogsCollection();
+
+  const cookLogs = await collection.find({ recordType: RecordType.COOK }).toArray();
+  const existingMissed = (await collection
+    .find({ recordType: RecordType.MISSED })
+    .toArray()) as MissedCheckinLog[];
+
+  const toInsert = detectMissedCheckins(
+    cookLogs.map(log => ({ date: log.date })),
+    settings.cadenceStartDate,
+    existingMissed.map(m => ({ nepaliMonth: m.nepaliMonth, hardCheckinDate: m.hardCheckinDate })),
+    asOfDate
+  );
+
+  const detectedAt = new Date().toISOString();
+  const inserted: MissedCheckinLog[] = [];
+
+  for (const rec of toInsert) {
+    const doc: MissedCheckinLog = {
+      recordType: RecordType.MISSED,
+      date: rec.hardCheckinDate,
+      nepaliMonth: rec.nepaliMonth,
+      hardCheckinDate: rec.hardCheckinDate,
+      detectedAt,
+      createdAt: detectedAt,
+    };
+    try {
+      const result = await collection.updateOne(
+        {
+          recordType: RecordType.MISSED,
+          nepaliMonth: rec.nepaliMonth,
+          hardCheckinDate: rec.hardCheckinDate,
+        },
+        { $setOnInsert: doc },
+        { upsert: true }
+      );
+      if (result.upsertedCount > 0) inserted.push(doc);
+    } catch (err: unknown) {
+      // A concurrent reconcile won the race — the unique index rejected the
+      // duplicate. That is the desired outcome, so swallow only this error.
+      const code = typeof err === 'object' && err !== null && 'code' in err
+        ? (err as { code?: number }).code
+        : undefined;
+      if (code !== 11000) throw err;
+    }
+  }
+
+  return inserted;
 }
 

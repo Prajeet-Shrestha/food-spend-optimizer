@@ -5,6 +5,7 @@ import { DashboardMetrics } from '@/types';
 import { RefreshCw, TrendingUp, TrendingDown, Clock, Calendar, DollarSign, PieChart, Activity, Wallet } from 'lucide-react';
 import NextCookWidget from './NextCookWidget';
 import InsightsCard from './InsightsCard';
+import CadenceStatusBanner from './CadenceStatusBanner';
 
 interface DashboardProps {
   refreshTrigger?: number;
@@ -284,6 +285,9 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
           )}
         </div>
       )}
+
+      {/* Cooking-cadence status — missed check-ins and the next hard date */}
+      <CadenceStatusBanner status={metrics.cadenceStatus} />
 
       {/* Next-cook suggestion widget — only when there's history to learn from */}
       {metrics.lastCookTime && (

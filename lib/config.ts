@@ -10,6 +10,10 @@ export interface Settings {
   baselineDailyHigh: number;
   baselineDailyAvg: number;
   trackingStartDate?: string; // ISO date string, optional
+  // Epoch for the cooking-cadence engine — kept separate from trackingStartDate
+  // (a different concern). The cadence engine only scopes itself to cooks on or
+  // after this date; it does not affect history or stats views.
+  cadenceStartDate?: string;
   suggestionPreferences?: SuggestionPreferences;
 }
 
@@ -19,6 +23,7 @@ const defaultSettings: Settings = {
   baselineDailyHigh: 400,
   baselineDailyAvg: 380,
   trackingStartDate: undefined,
+  cadenceStartDate: '2026-05-17', // operational rollout value
   suggestionPreferences: DEFAULT_SUGGESTION_PREFERENCES,
 };
 
@@ -36,6 +41,7 @@ export async function getSettings(): Promise<Settings> {
   if (dbSettings) {
     return {
       ...dbSettings,
+      cadenceStartDate: dbSettings.cadenceStartDate ?? defaultSettings.cadenceStartDate,
       suggestionPreferences: getSuggestionPreferences(dbSettings),
     };
   }
@@ -58,6 +64,9 @@ export async function getSettings(): Promise<Settings> {
   if (process.env.TRACKING_START_DATE) {
     envSettings.trackingStartDate = process.env.TRACKING_START_DATE;
   }
+  if (process.env.CADENCE_START_DATE) {
+    envSettings.cadenceStartDate = process.env.CADENCE_START_DATE;
+  }
 
   return {
     baseFee: envSettings.baseFee ?? defaultSettings.baseFee,
@@ -65,6 +74,7 @@ export async function getSettings(): Promise<Settings> {
     baselineDailyHigh: envSettings.baselineDailyHigh ?? defaultSettings.baselineDailyHigh,
     baselineDailyAvg: envSettings.baselineDailyAvg ?? defaultSettings.baselineDailyAvg,
     trackingStartDate: envSettings.trackingStartDate ?? defaultSettings.trackingStartDate,
+    cadenceStartDate: envSettings.cadenceStartDate ?? defaultSettings.cadenceStartDate,
     suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   };
 }
@@ -83,6 +93,7 @@ export function getSettingsSync(): Settings {
       ? Number(process.env.BASELINE_DAILY_AVG)
       : defaultSettings.baselineDailyAvg,
     trackingStartDate: process.env.TRACKING_START_DATE || defaultSettings.trackingStartDate,
+    cadenceStartDate: process.env.CADENCE_START_DATE || defaultSettings.cadenceStartDate,
     suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   };
 }

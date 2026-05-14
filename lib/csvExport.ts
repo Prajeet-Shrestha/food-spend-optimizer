@@ -1,4 +1,4 @@
-import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog, AdvanceLog } from '@/types';
+import { LogEntry, RecordType, CookLog, GroceryLog, PaymentLog, AdvanceLog, MissedCheckinLog } from '@/types';
 import { formatBilingualDate } from './dateUtils';
 import { isTip } from './billCalculations';
 
@@ -62,6 +62,10 @@ function rowFor(log: LogEntry): string[] {
     case RecordType.ADVANCE: {
       const a = log as AdvanceLog;
       return [date, nepali, 'ADVANCE', 'Advance Given', String(a.amountGiven), '', '', '', '', a.notes ?? ''];
+    }
+    case RecordType.MISSED: {
+      const m = log as MissedCheckinLog;
+      return [date, nepali, 'MISSED', `Missed check-in (${m.nepaliMonth})`, '0', '', '', '', '', m.notes ?? ''];
     }
   }
 }

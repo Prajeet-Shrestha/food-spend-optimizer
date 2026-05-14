@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllLogs, ensureIndexes } from '@/lib/db';
+import { getAllLogs, ensureIndexes, reconcileMissedCheckins } from '@/lib/db';
 import { getSettings } from '@/lib/config';
 import { calculateDashboardMetrics } from '@/lib/calculations';
 
@@ -10,7 +10,11 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     await ensureIndexes();
-    
+
+    // Back-fill any MISSED check-in records before reading logs, so the
+    // dashboard reflects the current cadence state on every load.
+    await reconcileMissedCheckins();
+
     const logs = await getAllLogs();
     const settings = await getSettings();
     
