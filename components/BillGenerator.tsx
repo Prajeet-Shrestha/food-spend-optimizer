@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { pdf } from '@react-pdf/renderer';
-import { BillTemplate } from './BillTemplate';
+import { BillTemplate, BillVariant } from './BillTemplate';
 import {
   filterLogsForBill,
   convertLogsToBillItems,
   calculateBillSummary,
   generateBillNumber,
-  formatBillDate
+  formatBillDate,
+  isSalaryPayment
 } from '@/lib/billCalculations';
 import { computeAdvanceLedger } from '@/lib/calculations';
-import { LogEntry } from '@/types';
+import { LogEntry, RecordType, PaymentLog } from '@/types';
 import { FileText, Download, X, Calendar, Loader2 } from 'lucide-react';
 
 interface BillGeneratorProps {
@@ -23,7 +24,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [generatingVariant, setGeneratingVariant] = useState<BillVariant | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [staffName, setStaffName] = useState('Bishnu Maya Thapa');
   const [billTitle, setBillTitle] = useState('Full Receipt');
@@ -72,7 +73,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
     setStartDate(firstDayOfMonth.toISOString().split('T')[0]);
   };
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = async (variant: BillVariant) => {
     if (!startDate || !endDate) {
       setError('Please select both start and end dates');
       return;
@@ -84,7 +85,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
     }
 
     try {
-      setGenerating(true);
+      setGeneratingVariant(variant);
       setError(null);
 
       // Drawdown must be computed on the FULL log history so prior-period
@@ -92,7 +93,15 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       const { perGroceryDrawn } = computeAdvanceLedger(allLogs);
 
       // Filter logs for the selected date range
-      const filteredLogs = filterLogsForBill(allLogs, startDate, endDate);
+      let filteredLogs = filterLogsForBill(allLogs, startDate, endDate);
+
+      // Earnings bill: drop salary-settlement payments entirely so the bill
+      // shows what staff accrued since the last settlement, not the settlement.
+      if (variant === 'earnings') {
+        filteredLogs = filteredLogs.filter(
+          log => log.recordType !== RecordType.PAYMENT || !isSalaryPayment(log as PaymentLog)
+        );
+      }
 
       if (filteredLogs.length === 0) {
         setError('No logs found in the selected date range');
@@ -129,6 +138,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
           summary={summary}
           staffName={staffName}
           billTitle={billTitle}
+          variant={variant}
         />
       );
 
@@ -139,7 +149,9 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Bill-${billNumber}.pdf`;
+      const fileSuffix =
+        variant === 'summary' ? 'Summary-' : variant === 'earnings' ? 'Earnings-' : '';
+      link.download = `Bill-${fileSuffix}${billNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -153,7 +165,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
       console.error('Error generating PDF:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate PDF');
     } finally {
-      setGenerating(false);
+      setGeneratingVariant(null);
     }
   };
 
@@ -164,6 +176,9 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
     const items = convertLogsToBillItems(filtered, perGroceryDrawn);
     return items.length;
   };
+
+  const generating = generatingVariant !== null;
+  const logCount = startDate && endDate && !loading ? getLogCount() : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -262,7 +277,7 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
                   <span className="text-[var(--muted-foreground)]">Billable Items:</span>
-                  <span className="font-medium text-[var(--foreground)]">{getLogCount()}</span>
+                  <span className="font-medium text-[var(--foreground)]">{logCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--muted-foreground)]">Period:</span>
@@ -284,20 +299,20 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] p-6 flex gap-3">
+        <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] p-6 flex flex-wrap gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors font-medium"
+            className="px-4 py-2 border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors font-medium"
             disabled={generating}
           >
             Cancel
           </button>
           <button
-            onClick={handleGeneratePDF}
-            disabled={generating || loading || !startDate || !endDate || getLogCount() === 0}
-            className="flex-1 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => handleGeneratePDF('earnings')}
+            disabled={generating || loading || !startDate || !endDate || logCount === 0}
+            className="flex-1 min-w-[150px] px-4 py-2 border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {generating ? (
+            {generatingVariant === 'earnings' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Generating...
@@ -305,7 +320,24 @@ export default function BillGenerator({ onClose }: BillGeneratorProps) {
             ) : (
               <>
                 <Download size={16} />
-                Download PDF
+                Download Earnings Bill
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => handleGeneratePDF('full')}
+            disabled={generating || loading || !startDate || !endDate || logCount === 0}
+            className="flex-1 min-w-[150px] px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 transition-opacity font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingVariant === 'full' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download size={16} />
+                Download Full Bill
               </>
             )}
           </button>

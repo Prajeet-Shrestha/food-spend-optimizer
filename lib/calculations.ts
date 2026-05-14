@@ -482,6 +482,8 @@ export function calculateDashboardMetrics(
 
   const paymentAlert = getPaymentAlert(logs, getNepaliBillingPeriod(new Date()), settings);
 
+  const missedNeedingReason = missedLogs.filter(m => !m.reason).length;
+
   return {
     amountDue,
     totalFoodSpend: {
@@ -513,6 +515,7 @@ export function calculateDashboardMetrics(
     lastAdvanceDate: ledger.lastAdvanceDate,
     cadenceStatus,
     paymentAlert,
+    missedNeedingReason,
   };
 }
 

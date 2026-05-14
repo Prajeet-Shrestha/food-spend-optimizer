@@ -202,6 +202,8 @@ const styles = StyleSheet.create({
   },
 });
 
+export type BillVariant = 'full' | 'summary' | 'earnings';
+
 interface BillTemplateProps {
   billNumber: string;
   generatedDate: string;
@@ -211,7 +213,14 @@ interface BillTemplateProps {
   summary: BillSummary;
   staffName?: string;
   billTitle?: string;
+  variant?: BillVariant;
 }
+
+const SUBTITLE: Record<BillVariant, string> = {
+  full: 'Settlement Bill',
+  summary: 'Settlement Summary',
+  earnings: 'Earnings Statement',
+};
 
 export const BillTemplate: React.FC<BillTemplateProps> = ({
   billNumber,
@@ -222,14 +231,16 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
   summary,
   staffName = 'Staff Member',
   billTitle = 'Food Spend Optimizer',
+  variant = 'full',
 }) => {
+  const summaryOnly = variant === 'summary';
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{billTitle}</Text>
-          <Text style={styles.subtitle}>Settlement Bill</Text>
+          <Text style={styles.subtitle}>{SUBTITLE[variant]}</Text>
           <View style={styles.billInfo}>
             <View>
               <Text style={styles.billInfoItem}>Bill Period:</Text>
@@ -249,61 +260,63 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
         </View>
 
         {/* Itemized Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Itemized Breakdown</Text>
-          <View style={styles.table}>
-            {/* Table Header */}
-            <View style={styles.tableHeader}>
-              <Text style={styles.col1}>Date</Text>
-              <Text style={styles.col2}>Type</Text>
-              <Text style={styles.col3}>Description</Text>
-              <Text style={styles.col4}>Debit</Text>
-              <Text style={styles.col5}>Credit</Text>
-              <Text style={styles.col6}>Advance</Text>
-              <Text style={styles.col7}>Balance</Text>
-            </View>
-
-            {items.map((item, index) => (
-              <View
-                key={item.id}
-                style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}
-              >
-                <View style={styles.col1}>
-                  <Text style={styles.cellText}>{item.gregorianDate}</Text>
-                  <Text style={styles.cellTextMuted}>{item.nepaliDate}</Text>
-                </View>
-                <Text style={[styles.col2, styles.typeText, { color: typeColors[item.type] }]}>
-                  {item.type}
-                </Text>
-                <View style={styles.col3}>
-                  <Text style={styles.cellText}>{item.description}</Text>
-                  {item.notes && (
-                    <Text style={styles.cellTextMuted}>{item.notes}</Text>
-                  )}
-                </View>
-                <Text style={[styles.col4, styles.cellText]}>
-                  {item.debit > 0 ? formatCurrency(item.debit) : '-'}
-                </Text>
-                <Text style={[styles.col5, styles.cellText]}>
-                  {item.credit > 0 ? formatCurrency(item.credit) : '-'}
-                </Text>
-                <Text style={[
-                  styles.col6,
-                  item.advance > 0 ? styles.advancePositive : item.advance < 0 ? styles.advanceNegative : styles.cellText
-                ]}>
-                  {item.advance > 0
-                    ? `+${formatCurrency(item.advance)}`
-                    : item.advance < 0
-                      ? `-${formatCurrency(Math.abs(item.advance))}`
-                      : '-'}
-                </Text>
-                <Text style={[styles.col7, styles.cellTextBold]}>
-                  {formatCurrency(item.balance)}
-                </Text>
+        {!summaryOnly && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Itemized Breakdown</Text>
+            <View style={styles.table}>
+              {/* Table Header */}
+              <View style={styles.tableHeader}>
+                <Text style={styles.col1}>Date</Text>
+                <Text style={styles.col2}>Type</Text>
+                <Text style={styles.col3}>Description</Text>
+                <Text style={styles.col4}>Debit</Text>
+                <Text style={styles.col5}>Credit</Text>
+                <Text style={styles.col6}>Advance</Text>
+                <Text style={styles.col7}>Balance</Text>
               </View>
-            ))}
+
+              {items.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={index % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}
+                >
+                  <View style={styles.col1}>
+                    <Text style={styles.cellText}>{item.gregorianDate}</Text>
+                    <Text style={styles.cellTextMuted}>{item.nepaliDate}</Text>
+                  </View>
+                  <Text style={[styles.col2, styles.typeText, { color: typeColors[item.type] }]}>
+                    {item.type}
+                  </Text>
+                  <View style={styles.col3}>
+                    <Text style={styles.cellText}>{item.description}</Text>
+                    {item.notes && (
+                      <Text style={styles.cellTextMuted}>{item.notes}</Text>
+                    )}
+                  </View>
+                  <Text style={[styles.col4, styles.cellText]}>
+                    {item.debit > 0 ? formatCurrency(item.debit) : '-'}
+                  </Text>
+                  <Text style={[styles.col5, styles.cellText]}>
+                    {item.credit > 0 ? formatCurrency(item.credit) : '-'}
+                  </Text>
+                  <Text style={[
+                    styles.col6,
+                    item.advance > 0 ? styles.advancePositive : item.advance < 0 ? styles.advanceNegative : styles.cellText
+                  ]}>
+                    {item.advance > 0
+                      ? `+${formatCurrency(item.advance)}`
+                      : item.advance < 0
+                        ? `-${formatCurrency(Math.abs(item.advance))}`
+                        : '-'}
+                  </Text>
+                  <Text style={[styles.col7, styles.cellTextBold]}>
+                    {formatCurrency(item.balance)}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Summary */}
         <View style={styles.summary}>
@@ -321,13 +334,13 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
             <Text style={styles.summaryLabel}>Total Reimbursable Groceries:</Text>
             <Text style={styles.summaryValue}>{formatCurrency(summary.totalStaffGroceries)}</Text>
           </View>
-          {summary.totalAdvancesDrawnInPeriod > 0 && (
+          {!summaryOnly && summary.totalAdvancesDrawnInPeriod > 0 && (
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { fontSize: 9 }]}>(Drawn from advance: {formatCurrency(summary.totalAdvancesDrawnInPeriod)})</Text>
               <Text style={styles.summaryValue}></Text>
             </View>
           )}
-          {summary.totalAdvancesGivenInPeriod > 0 && (
+          {!summaryOnly && summary.totalAdvancesGivenInPeriod > 0 && (
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { fontSize: 9 }]}>(Advances given in period: {formatCurrency(summary.totalAdvancesGivenInPeriod)})</Text>
               <Text style={styles.summaryValue}></Text>
@@ -347,7 +360,7 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
             <Text style={styles.summaryTotalValue}>{formatCurrency(summary.finalAmountDue)}</Text>
           </View>
 
-          {summary.totalTips > 0 && (
+          {!summaryOnly && summary.totalTips > 0 && (
             <View style={[styles.summaryRow, { marginTop: 15 }]}>
               <Text style={[styles.summaryLabel, { fontSize: 8 }]}>
                 (Tips paid separately: {formatCurrency(summary.totalTips)})
@@ -376,10 +389,12 @@ export const BillTemplate: React.FC<BillTemplateProps> = ({
           <View style={styles.notes}>
             <Text style={styles.notesLabel}>Notes:</Text>
             <Text style={styles.notesText}>
-              This bill includes cook fees and staff-purchased groceries (reimbursable items).
-              Tips are excluded from the amount due calculation.
-              The Advance column shows cash given to the cook (+) and drawdowns when groceries
-              were paid from that cash (-); these flows do not change the running balance.
+              {variant === 'summary' &&
+                'This summary shows cook fees, paid leave, and reimbursable groceries for the period, less payments already made. Tips are excluded from the amount due.'}
+              {variant === 'earnings' &&
+                'This statement lists cook fees, paid leave, and reimbursable groceries earned since the last salary settlement. The salary settlement payment itself is excluded; other payments are still shown. Tips are excluded from the amount due.'}
+              {variant === 'full' &&
+                'This bill includes cook fees and staff-purchased groceries (reimbursable items). Tips are excluded from the amount due calculation. The Advance column shows cash given to the cook (+) and drawdowns when groceries were paid from that cash (-); these flows do not change the running balance.'}
             </Text>
           </View>
         </View>

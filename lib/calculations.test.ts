@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateDashboardMetrics, calculateAmountDue, calculateTotalFoodSpend } from '@/lib/calculations';
-import { CookLog, LogEntry, PaidLeaveLog, PaymentLog, RecordType } from '@/types';
+import { CookLog, LogEntry, MissedCheckinLog, MissedReason, PaidLeaveLog, PaymentLog, RecordType } from '@/types';
 import { Settings } from '@/lib/config';
 
 const baseSettings: Settings = {
@@ -27,6 +27,15 @@ const payment = (date: string, amountPaid: number): PaymentLog => ({
   recordType: RecordType.PAYMENT,
   date,
   amountPaid,
+});
+
+const missed = (hardCheckinDate: string, reason?: MissedReason): MissedCheckinLog => ({
+  recordType: RecordType.MISSED,
+  date: hardCheckinDate,
+  nepaliMonth: '2083-Jestha',
+  hardCheckinDate,
+  detectedAt: '2026-06-01T00:00:00.000Z',
+  reason,
 });
 
 describe('calculateDashboardMetrics — cadenceStatus wiring', () => {
@@ -83,5 +92,24 @@ describe('PAID_LEAVE — counts on the earned side', () => {
       payment('2026-05-14', 1250),
     ];
     expect(calculateAmountDue(logs, baseSettings)).toBe(0);
+  });
+});
+
+describe('calculateDashboardMetrics — missedNeedingReason', () => {
+  it('counts MISSED records that have no reason set', () => {
+    const logs: LogEntry[] = [
+      missed('2026-05-21'),
+      missed('2026-05-25', 'STAFF_ABSENT'),
+      missed('2026-05-29'),
+    ];
+    expect(calculateDashboardMetrics(logs, baseSettings).missedNeedingReason).toBe(2);
+  });
+
+  it('is zero when every MISSED record has a reason', () => {
+    const logs: LogEntry[] = [
+      missed('2026-05-21', 'CANCELLED_BY_ME'),
+      missed('2026-05-25', 'OTHER'),
+    ];
+    expect(calculateDashboardMetrics(logs, baseSettings).missedNeedingReason).toBe(0);
   });
 });

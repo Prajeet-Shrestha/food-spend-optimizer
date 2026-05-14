@@ -59,15 +59,28 @@ export interface AdvanceLog extends BaseLog {
   amountGiven: number;
 }
 
+// Why a check-in was missed — set by the user after the fact (record-keeping
+// only; it does not change cadence counts or the overdue flag).
+export type MissedReason = 'STAFF_ABSENT' | 'CANCELLED_BY_ME' | 'OTHER';
+
+export const MISSED_REASON_LABELS: Record<MissedReason, string> = {
+  STAFF_ABSENT: "Staff didn't come",
+  CANCELLED_BY_ME: 'I told her not to come',
+  OTHER: 'Other',
+};
+
 // Missed Check-in Log — system-generated when a hard cadence check-in date
-// passes without a cook. Never created or edited by the user. Idempotency key
-// is { nepaliMonth, hardCheckinDate }. `date` mirrors `hardCheckinDate` so the
-// record sorts and renders alongside other log types.
+// passes without a cook. The record itself is system-generated and cannot be
+// created or deleted by the user; only the `reason` + free-text `notes`
+// (the "why") are user-editable. Idempotency key is { nepaliMonth,
+// hardCheckinDate }. `date` mirrors `hardCheckinDate` so the record sorts and
+// renders alongside other log types.
 export interface MissedCheckinLog extends BaseLog {
   recordType: RecordType.MISSED;
   nepaliMonth: string; // e.g. "2083-Jestha"
   hardCheckinDate: string; // ISO date — the missed hard check-in date
   detectedAt: string; // ISO timestamp when reconcile recorded it
+  reason?: MissedReason; // user-supplied; `notes` holds the free-text detail
 }
 
 // Paid Leave Log — a day the cook was told not to come (employer's call) but is
@@ -133,6 +146,8 @@ export interface DashboardMetrics {
   cadenceStatus: CadenceStatus | null;
   // End-of-month payment reminder, scoped to the current Nepali billing cycle.
   paymentAlert: PaymentAlert;
+  // Count of MISSED check-in records that still have no user-supplied reason.
+  missedNeedingReason: number;
 }
 
 // ===== Suggestion feature =====

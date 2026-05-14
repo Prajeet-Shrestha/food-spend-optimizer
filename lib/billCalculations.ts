@@ -1,4 +1,4 @@
-import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog, MissedCheckinLog, PaidLeaveLog } from '@/types';
+import { LogEntry, RecordType, BoughtBy, PaymentLog, CookLog, GroceryLog, AdvanceLog, MissedCheckinLog, PaidLeaveLog, MISSED_REASON_LABELS } from '@/types';
 import { formatBilingualDate, getNepaliDayNumber } from './dateUtils';
 
 export interface BillSummary {
@@ -43,6 +43,17 @@ export const isTip = (paymentLog: PaymentLog): boolean => {
     const remarks = (paymentLog.remarks || '').toLowerCase();
     const notes = (paymentLog.notes || '').toLowerCase();
     return remarks.includes('tip') || notes.includes('tip') || paymentLog.isTip === true;
+};
+
+/**
+ * Check if a payment is a salary settlement (tagged via 'salary' in remarks/notes).
+ * The Earnings Bill excludes these so it shows what staff has accrued since the
+ * last settlement, not the settlement itself.
+ */
+export const isSalaryPayment = (paymentLog: PaymentLog): boolean => {
+    const remarks = (paymentLog.remarks || '').toLowerCase();
+    const notes = (paymentLog.notes || '').toLowerCase();
+    return remarks.includes('salary') || notes.includes('salary');
 };
 
 export const formatBillDate = formatBilingualDate;
@@ -162,7 +173,10 @@ export const convertLogsToBillItems = (
                 isMemo = true;
                 const monthName = missedLog.nepaliMonth.split('-')[1] ?? missedLog.nepaliMonth;
                 const day = getNepaliDayNumber(new Date(missedLog.hardCheckinDate));
-                description = `Missed check-in — ${monthName} ${day}`;
+                const reasonSuffix = missedLog.reason
+                    ? ` (${MISSED_REASON_LABELS[missedLog.reason]})`
+                    : '';
+                description = `Missed check-in — ${monthName} ${day}${reasonSuffix}`;
                 break;
             }
             case RecordType.PAID_LEAVE: {

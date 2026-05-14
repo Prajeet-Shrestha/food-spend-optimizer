@@ -291,7 +291,10 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
       )}
 
       {/* Cooking-cadence status — missed check-ins and the next hard date */}
-      <CadenceStatusBanner status={metrics.cadenceStatus} />
+      <CadenceStatusBanner
+        status={metrics.cadenceStatus}
+        missedNeedingReason={metrics.missedNeedingReason}
+      />
 
       {/* Next-cook suggestion widget — only when there's history to learn from */}
       {metrics.lastCookTime && (

@@ -1,10 +1,13 @@
 'use client';
 
-import { CalendarCheck, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { CalendarCheck, AlertTriangle, PencilLine } from 'lucide-react';
 import type { CadenceStatus } from '@/lib/cadence';
 
 interface CadenceStatusBannerProps {
   status: CadenceStatus | null;
+  // Count of MISSED check-in records that still have no user-supplied reason.
+  missedNeedingReason: number;
 }
 
 function formatDate(iso: string): string {
@@ -14,7 +17,10 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function CadenceStatusBanner({ status }: CadenceStatusBannerProps) {
+export default function CadenceStatusBanner({
+  status,
+  missedNeedingReason,
+}: CadenceStatusBannerProps) {
   // Nothing to show until the cadence engine has at least one cook to anchor on.
   if (!status || (status.lastCookDate === null && status.nextHardCheckinDate === null)) {
     return null;
@@ -82,6 +88,19 @@ export default function CadenceStatusBanner({ status }: CadenceStatusBannerProps
           </div>
         </div>
       </div>
+
+      {missedNeedingReason > 0 && (
+        <Link
+          href="/calendar"
+          className="mt-4 flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-sm hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+        >
+          <PencilLine className="w-4 h-4 shrink-0" />
+          <span>
+            {missedNeedingReason} missed check-in{missedNeedingReason === 1 ? '' : 's'} need
+            {missedNeedingReason === 1 ? 's' : ''} a reason — add one from the calendar.
+          </span>
+        </Link>
+      )}
     </div>
   );
 }

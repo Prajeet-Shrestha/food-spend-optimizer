@@ -77,6 +77,15 @@ describe('convertLogsToBillItems — MISSED memo rows', () => {
     expect(items).toHaveLength(1);
     expect(items[0].description).toBe('Missed check-in — Jestha 9');
   });
+
+  it('appends the reason label to the description once a reason is set', () => {
+    const missedWithReason: MissedCheckinLog = {
+      ...missed('b', '2026-05-23', '2083-Jestha'),
+      reason: 'CANCELLED_BY_ME',
+    };
+    const items = convertLogsToBillItems([missedWithReason]);
+    expect(items[0].description).toBe('Missed check-in — Jestha 9 (I told her not to come)');
+  });
 });
 
 describe('calculateBillSummary — MISSED records are money-neutral', () => {

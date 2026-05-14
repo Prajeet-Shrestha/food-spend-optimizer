@@ -24,6 +24,7 @@ export async function GET() {
           baselineDailyHigh: 400,
           baselineDailyAvg: 380,
           trackingStartDate: undefined,
+          cadenceStartDate: undefined,
           suggestionPreferences: DEFAULT_SUGGESTION_PREFERENCES,
         },
       });
@@ -57,6 +58,7 @@ export async function PUT(request: NextRequest) {
       baselineDailyHigh: Number(body.baselineDailyHigh) ?? 400,
       baselineDailyAvg: Number(body.baselineDailyAvg) ?? 380,
       trackingStartDate: body.trackingStartDate || undefined,
+      cadenceStartDate: body.cadenceStartDate || undefined,
       suggestionPreferences: validateSuggestionPreferences(body.suggestionPreferences),
     };
 
@@ -87,6 +89,16 @@ export async function PUT(request: NextRequest) {
       if (isNaN(date.getTime())) {
         return NextResponse.json(
           { error: 'Invalid tracking start date format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (settings.cadenceStartDate) {
+      const date = new Date(settings.cadenceStartDate);
+      if (isNaN(date.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid cadence start date format' },
           { status: 400 }
         );
       }

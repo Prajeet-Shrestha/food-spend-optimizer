@@ -57,13 +57,45 @@ export async function PUT(
       );
     }
 
-    // MISSED records are system-generated only — they cannot be edited, nor can
-    // any record be converted into one.
-    if (existingLog.recordType === RecordType.MISSED || body.recordType === RecordType.MISSED) {
+    // No record type can be converted INTO a system-generated MISSED record.
+    if (body.recordType === RecordType.MISSED && existingLog.recordType !== RecordType.MISSED) {
       return NextResponse.json(
-        { error: 'MISSED records are system-generated and cannot be edited' },
+        { error: 'Records cannot be converted into system-generated MISSED records' },
         { status: 403 }
       );
+    }
+
+    // MISSED records are system-generated: their date/idempotency fields are
+    // locked, but the user CAN annotate why the check-in was missed — only the
+    // `reason` and free-text `notes` are editable here.
+    if (existingLog.recordType === RecordType.MISSED) {
+      const validReasons = ['STAFF_ABSENT', 'CANCELLED_BY_ME', 'OTHER'];
+      if (body.reason && !validReasons.includes(body.reason)) {
+        return NextResponse.json(
+          { error: 'Invalid missed-checkin reason' },
+          { status: 400 }
+        );
+      }
+
+      await collection.updateOne(
+        { _id: new ObjectId(id) } as Filter<any>,
+        {
+          $set: {
+            reason: body.reason || undefined,
+            notes: body.notes || undefined,
+            updatedAt: new Date().toISOString(),
+          },
+        }
+      );
+
+      const updatedMissed = await collection.findOne({ _id: new ObjectId(id) } as Filter<any>);
+      return NextResponse.json({
+        message: 'Missed check-in updated',
+        log: {
+          ...updatedMissed,
+          _id: updatedMissed!._id.toString(),
+        },
+      });
     }
 
     // Prepare update data

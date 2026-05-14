@@ -19,6 +19,7 @@ export default function SettingsPanel({ onUpdate, embedded = false }: SettingsPa
     baselineDailyHigh: 400,
     baselineDailyAvg: 380,
     trackingStartDate: undefined,
+    cadenceStartDate: undefined,
     suggestionPreferences: { ...DEFAULT_SUGGESTION_PREFERENCES },
   });
   const [loading, setLoading] = useState(true);
@@ -247,6 +248,23 @@ export default function SettingsPanel({ onUpdate, embedded = false }: SettingsPa
                 />
                 <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
                   Override the tracking window start date. By default, it uses the first log entry.
+                </p>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1.5 text-[var(--foreground)]">
+                  Cadence Start Date (Optional)
+                </label>
+                <input
+                  type="date"
+                  value={settings.cadenceStartDate || ''}
+                  onChange={(e) => setSettings({ ...settings, cadenceStartDate: e.target.value || undefined })}
+                  className="w-full px-3 py-2 border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)] focus:ring-2 focus:ring-[var(--ring)] focus:outline-none transition-all"
+                />
+                <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                  The epoch the cadence engine uses. Cooks before this date are ignored. If this
+                  date is in the future, the cadence banner and calendar marker show nothing
+                  until it passes.
                 </p>
               </div>
             </div>
