@@ -6,6 +6,7 @@ import { RefreshCw, TrendingUp, TrendingDown, Clock, Calendar, DollarSign, PieCh
 import NextCookWidget from './NextCookWidget';
 import InsightsCard from './InsightsCard';
 import CadenceStatusBanner from './CadenceStatusBanner';
+import PaymentAlertBanner from './PaymentAlertBanner';
 
 interface DashboardProps {
   refreshTrigger?: number;
@@ -169,6 +170,9 @@ export default function Dashboard({ refreshTrigger }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* End-of-month payment reminder — only in the last 3 days of the Nepali month */}
+      <PaymentAlertBanner alert={metrics.paymentAlert} />
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

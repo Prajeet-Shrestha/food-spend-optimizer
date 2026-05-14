@@ -2,6 +2,8 @@ import { LogEntry, RecordType, DashboardMetrics, BoughtBy, PaymentLog, AdvanceLo
 import { Settings } from './config';
 import { getCadenceStatus } from './cadence';
 import { getLocalDateKey } from './dateUtils';
+import { getPaymentAlert } from './paymentAlert';
+import { getNepaliBillingPeriod } from './nepaliCalendar';
 
 export interface AdvanceLedger {
   perGroceryDrawn: Map<string, number>;
@@ -468,6 +470,8 @@ export function calculateDashboardMetrics(
       )
     : null;
 
+  const paymentAlert = getPaymentAlert(logs, getNepaliBillingPeriod(new Date()), settings);
+
   return {
     amountDue,
     totalFoodSpend: {
@@ -498,6 +502,7 @@ export function calculateDashboardMetrics(
     totalAdvancesDrawn: ledger.totalAdvancesDrawn,
     lastAdvanceDate: ledger.lastAdvanceDate,
     cadenceStatus,
+    paymentAlert,
   };
 }
 

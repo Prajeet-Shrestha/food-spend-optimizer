@@ -1,4 +1,5 @@
 import type { CadenceStatus } from '@/lib/cadence';
+import type { PaymentAlert } from '@/lib/paymentAlert';
 
 export enum RecordType {
   COOK = 'COOK',
@@ -121,6 +122,8 @@ export interface DashboardMetrics {
   lastAdvanceDate?: string;
   // Cooking-cadence status — null when no cadenceStartDate is configured.
   cadenceStatus: CadenceStatus | null;
+  // End-of-month payment reminder, scoped to the current Nepali billing cycle.
+  paymentAlert: PaymentAlert;
 }
 
 // ===== Suggestion feature =====
